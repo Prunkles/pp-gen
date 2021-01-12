@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Palettes.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

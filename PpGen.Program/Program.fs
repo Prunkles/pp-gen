@@ -1,4 +1,6 @@
-﻿open System
+﻿module PpGen.Program
+
+open System
 open System
 open System.Collections.Generic
 open System.Diagnostics
@@ -25,22 +27,6 @@ let noise =
             value
 
 
-let palette =
-    Palette.gradient ([
-        0, (0, 53, 83)
-        90, (5, 70, 107)
-        105, (17, 85, 124)
-        125, (104, 176, 196)
-        130, (179, 214, 224)
-
-        131, (8, 68, 34)
-        160, (50, 101, 50)
-        190, (118, 141, 69)
-        210, (165, 184, 105)
-        235, (205, 207, 162)
-        250, (235, 243, 248)
-        255, (255, 255, 255)
-    ] |> Seq.map (fun (h, c) -> float h / 255., c))
 
 [<EntryPoint>]
 let main argv =
@@ -89,7 +75,7 @@ let main argv =
 
     let computeColor h =
         let h = normalize vmin vmax h
-        Palette.pick palette h
+        Palette.pick Palettes.lefebrve2 h
     for (pxg, pyg), h in map |> DiSqMap.points do
         let color = computeColor h
         bitmap.SetPixel(pxg, pyg, color)
