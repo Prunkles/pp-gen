@@ -3,6 +3,7 @@
 open System
 open System.Collections.Generic
 open PpGen.Utils
+open GenericNumber
 
 
 type PointPosition = (struct (int * int))
