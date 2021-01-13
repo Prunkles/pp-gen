@@ -1,8 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
-
+// const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 
 /*
@@ -30,8 +29,6 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 
-
-
 /*
  * We've enabled TerserPlugin for you! This minifies your app
  * in order to load faster and run less javascript.
@@ -44,67 +41,67 @@ const TerserPlugin = require('terser-webpack-plugin');
 
 
 function resolve(filePath) {
-  return path.isAbsolute(filePath) ? filePath : path.join(__dirname, filePath);
+    return path.isAbsolute(filePath) ? filePath : path.join(__dirname, filePath);
 }
 
 module.exports = {
-  mode: 'development',
-  entry: {
-    webapp: resolve("build/Program.js"),
-  },
-  output: {
-    path: resolve("dist/"),
-    filename: "[name].js",
-  },
+    mode: 'development',
+    entry: {
+        webapp: resolve("build/Program.js"),
+    },
+    output: {
+        path: resolve("dist/"),
+        filename: "[name].js",
+    },
 
     plugins: [
         new webpack.ProgressPlugin(),
-        new MiniCssExtractPlugin({ filename:'main.[contenthash].css' }),
+        new MiniCssExtractPlugin({filename: 'main.[contenthash].css'}),
         new HtmlWebpackPlugin({
-          filename: 'index.html',
-          template: 'public/index.html',
+            filename: 'index.html',
+            template: 'public/index.html',
         }),
     ],
 
-  module: {
-    rules: [{
-      test: /.(less|css)$/,
+    module: {
+        rules: [{
+            test: /.(less|css)$/,
 
-      use: [{
-        loader: MiniCssExtractPlugin.loader
-      }, {
-        loader: "style-loader"
-      }, {
-        loader: "css-loader",
+            use: [{
+                loader: MiniCssExtractPlugin.loader
+            }, {
+                loader: "style-loader"
+            }, {
+                loader: "css-loader",
 
-        options: {
-          sourceMap: true
+                options: {
+                    sourceMap: true
+                }
+            }, {
+                loader: "less-loader",
+
+                options: {
+                    sourceMap: true
+                }
+            }]
+        }]
+    },
+
+    optimization: {
+        minimizer: [new TerserPlugin()],
+
+        splitChunks: {
+            cacheGroups: {
+                vendors: {
+                    priority: -10,
+                    test: /[\\/]node_modules[\\/]/
+                }
+            },
+
+            chunks: 'async',
+            minChunks: 1,
+            minSize: 30000,
+            name: false
         }
-      }, {
-        loader: "less-loader",
-
-        options: {
-          sourceMap: true
-        }
-      }]
-    }]
-  },
-
-  optimization: {
-    minimizer: [new TerserPlugin()],
-
-    splitChunks: {
-      cacheGroups: {
-        vendors: {
-          priority: -10,
-          test: /[\\/]node_modules[\\/]/
-        }
-      },
-
-      chunks: 'async',
-      minChunks: 1,
-      minSize: 30000,
-      name: false
     }
-  }
 }

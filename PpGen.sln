@@ -11,6 +11,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Web", "Web", "{735DBBA4-5E0F-406C-8B4D-3EA1E6FB0DC0}"
 ProjectSection(SolutionItems) = preProject
 	PpGen.Web\package.json = PpGen.Web\package.json
+	PpGen.Web\webpack.config.js = PpGen.Web\webpack.config.js
 EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server", "Server", "{06ADACD2-67A0-4C69-8E23-93FB7A0C5001}"
