@@ -1,6 +1,8 @@
 [<AutoOpen>]
 module FuncStuff
 
+open GenericNumber
+
 let inline ( ^ ) f x = f x
 
 [<AutoOpen>]

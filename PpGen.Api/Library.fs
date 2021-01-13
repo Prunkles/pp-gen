@@ -1,5 +1,4 @@
 ﻿namespace PpGen.Api
 
-module Say =
-    let hello name =
-        printfn "Hello %s" name
+type IApi =
+    { GenerateDiSq: unit -> Async<float[,]> }

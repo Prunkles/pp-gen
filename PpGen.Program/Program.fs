@@ -67,14 +67,14 @@ let main argv =
             use brush = new SolidBrush(color)
             gfx.FillRectangle(brush, cxg * cs, cyg * cs, cs, cs)
 
-    let vmin, vmax =
+    let minh, maxh =
         DiSqMap.points map
         |> Seq.fold
-            (fun (vmin, vmax) struct(_, value) -> min vmin value, max vmax value)
+            (fun (minh, maxh) struct(_, value) -> min minh value, max maxh value)
             (Double.PositiveInfinity, Double.NegativeInfinity)
 
     let computeColor h =
-        let h = normalize vmin vmax h
+        let h = normalize minh maxh h
         Palette.pick Palettes.lefebrve2 h
     for (pxg, pyg), h in map |> DiSqMap.points do
         let color = computeColor h

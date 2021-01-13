@@ -1,9 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
+
+        <Compile Include="DiSq.fs" />
 
         <Compile Include="Router.fs" />
         <Compile Include="Program.fs" />
@@ -14,6 +16,13 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Saturn" Version="0.15.0-preview01" />
+        <PackageReference Include="Saturn" Version="0.14.1" />
+        <PackageReference Include="Fable.Remoting.Giraffe" Version="4.15.0" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\PpGen.Api\PpGen.Api.fsproj" />
+      <ProjectReference Include="..\..\..\PpGen.DiamondSquare\PpGen.DiamondSquare.fsproj" />
+      <ProjectReference Include="..\..\..\PpGen.Utils\PpGen.Utils.fsproj" />
     </ItemGroup>
 </Project>
