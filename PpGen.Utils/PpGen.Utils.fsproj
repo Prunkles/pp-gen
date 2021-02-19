@@ -7,6 +7,7 @@
     <ItemGroup>
         <Compile Include="GenericNumber.fs" />
         <Compile Include="FuncStuff.fs" />
+        <Compile Include="Palette\Color.fs" />
         <Compile Include="Palette\Palette.fs" />
         <Compile Include="Palette\Palettes.fs" />
     </ItemGroup>

@@ -22,6 +22,6 @@ let lefebrve2 =
 
 let greyscale =
     Palette (fun h ->
-        let gray = h * 255. |> int
-        Color.FromArgb(gray, gray, gray)
+        let gray = h * 255.
+        Rgb.create gray gray gray
     )

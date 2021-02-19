@@ -62,6 +62,24 @@ module.exports = {
             template: 'public/index.html',
         }),
     ],
+    
+    resolve: {
+        fallback: {
+            path: false,
+        },
+    },
+    
+    devServer: {
+        publicPath: '/',
+        host: '0.0.0.0',
+        port: 8080,
+        proxy: {
+            // '/api/**': {
+            //     target: 'http://localhost:' + '8085',
+            //     changeOrigin: true,
+            // },
+        },
+    },
 
     module: {
         rules: [{

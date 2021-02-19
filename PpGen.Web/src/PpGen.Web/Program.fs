@@ -3,10 +3,11 @@ module PpGen.Web.Program
 open Browser
 open Feliz
 
-
-[<ReactComponent>]
-let App () =
-    Html.text "AAA"
+open App
 
 
+//async {
+//    ReactDOM.render(App, Dom.document.getElementById("app"))
+//}
+//|> Async.StartImmediate
 ReactDOM.render(App, Dom.document.getElementById("app"))

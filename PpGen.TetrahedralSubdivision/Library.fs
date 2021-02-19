@@ -17,7 +17,7 @@ type Tetrahedron<'a> =
       V2: Vertex<'a>; V3: Vertex<'a> }
 
 module Tetrahedron =
-    let item tetra i = match i with 0 -> tetra.V0 | 1 -> tetra.V1 | 2 -> tetra.V2 | 3 -> tetra.V3 | _ -> invalidOp ""
+    let item tetra i = match i with 0 -> tetra.V0 | 1 -> tetra.V1 | 2 -> tetra.V2 | 3 -> tetra.V3 | _ -> System.IndexOutOfRangeException() |> raise
 
 type Tetrahedron<'a> with
     member this.Item(i) = Tetrahedron.item this i
@@ -83,11 +83,11 @@ module Functions =
                 lab |> max lac |> max lad
                 |> max lbc |> max lbd |> max lcd
             match maxlength with
-            | x when x = lac -> planet a c b d x y z level
-            | x when x = lad -> planet a d b c x y z level
-            | x when x = lbc -> planet b c a d x y z level
-            | x when x = lbd -> planet b d a c x y z level
-            | x when x = lcd -> planet c d a b x y z level
+            | l when l = lac -> planet a c b d x y z level
+            | l when l = lad -> planet a d b c x y z level
+            | l when l = lbc -> planet b c a d x y z level
+            | l when l = lbd -> planet b d a c x y z level
+            | l when l = lcd -> planet c d a b x y z level
             | _ ->
                 if level = 11 then // Save tetrahedron for caching
                     env.ssh <- { V0 = a; V1 = b; V2 = c; V3 = d }
