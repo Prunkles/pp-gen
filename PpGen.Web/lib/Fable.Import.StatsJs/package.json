@@ -1,0 +1,5 @@
+{
+    "devDependencies": {
+        "@types/stats": "0.16.30"
+    }
+}

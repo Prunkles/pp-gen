@@ -1,0 +1,6 @@
+{
+    "devDependencies": {
+        "@types/three": "0.125.3",
+        "ts2fable": "^0.7.1"
+    }
+}

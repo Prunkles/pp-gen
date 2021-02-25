@@ -1,0 +1,9 @@
+{
+    "scripts": {
+        "gen-types": "ts2fable node_modules/@types/dat.gui/index.d.ts tmp/Types.Generated.fs -e *"
+    },
+    "devDependencies": {
+        "@types/dat.gui": "0.7.6",
+        "ts2fable": "^0.7.1"
+    }
+}

@@ -1,0 +1,110 @@
+// ts2fable 0.8.0
+module rec Fable.Import.DatGui.Types
+open System
+open Fable.Core
+open Fable.Core.JS
+open Browser.Types
+
+
+type [<AllowNullLiteral>] IExports =
+    abstract GUI: GUIStatic
+    abstract GUIController: GUIControllerStatic
+
+type [<AllowNullLiteral>] GUIParams =
+    /// <summary>Handles GUI's element placement for you.</summary>
+    /// <default>true</default>
+    abstract autoPlace: bool option with get, set
+    /// <summary>If true, starts closed.</summary>
+    /// <default>false</default>
+    abstract closed: bool option with get, set
+    /// <summary>If true, close/open button shows on top of the GUI.</summary>
+    /// <default>false</default>
+    abstract closeOnTop: bool option with get, set
+    /// <summary>If true, GUI is closed by the "h" keypress.</summary>
+    /// <default>false</default>
+    abstract hideable: bool option with get, set
+    /// JSON object representing the saved state of this GUI.
+    abstract load: obj option with get, set
+    /// The name of this GUI.
+    abstract name: string option with get, set
+    /// The identifier for a set of saved values.
+    abstract preset: string option with get, set
+    /// The width of GUI element.
+    abstract width: float option with get, set
+
+type [<AllowNullLiteral>] GUI =
+    abstract __controllers: ResizeArray<GUIController> with get, set
+    abstract __folders: GUI__folders with get, set
+    abstract domElement: HTMLElement with get, set
+    abstract add: target: Object * propName: string * ?min: float * ?max: float * ?step: float -> GUIController
+    abstract add: target: Object * propName: string * status: bool -> GUIController
+    abstract add: target: Object * propName: string * items: ResizeArray<string> -> GUIController
+    abstract add: target: Object * propName: string * items: ResizeArray<float> -> GUIController
+    abstract add: target: Object * propName: string * items: Object -> GUIController
+    abstract addColor: target: Object * propName: string -> GUIController
+    abstract remove: controller: GUIController -> unit
+    abstract destroy: unit -> unit
+    abstract addFolder: propName: string -> GUI
+    abstract removeFolder: subFolder: GUI -> unit
+    abstract ``open``: unit -> unit
+    abstract close: unit -> unit
+    abstract hide: unit -> unit
+    abstract show: unit -> unit
+    abstract remember: target: Object * [<ParamArray>] additionalTargets: Object[] -> unit
+    abstract getRoot: unit -> GUI
+    abstract getSaveObject: unit -> Object
+    abstract save: unit -> unit
+    abstract saveAs: presetName: string -> unit
+    abstract revert: gui: GUI -> unit
+    abstract listen: controller: GUIController -> unit
+    abstract updateDisplay: unit -> unit
+    abstract parent: GUI
+    abstract scrollable: bool
+    abstract autoPlace: bool
+    abstract preset: string with get, set
+    abstract width: float with get, set
+    abstract name: string with get, set
+    abstract closed: bool with get, set
+    abstract load: Object
+    abstract useLocalStorage: bool with get, set
+
+type [<AllowNullLiteral>] GUIStatic =
+    abstract CLASS_AUTO_PLACE: string with get, set
+    abstract CLASS_AUTO_PLACE_CONTAINER: string with get, set
+    abstract CLASS_MAIN: string with get, set
+    abstract CLASS_CONTROLLER_ROW: string with get, set
+    abstract CLASS_TOO_TALL: string with get, set
+    abstract CLASS_CLOSED: string with get, set
+    abstract CLASS_CLOSE_BUTTON: string with get, set
+    abstract CLASS_CLOSE_TOP: string with get, set
+    abstract CLASS_CLOSE_BOTTOM: string with get, set
+    abstract CLASS_DRAG: string with get, set
+    abstract DEFAULT_WIDTH: float with get, set
+    abstract TEXT_CLOSED: string with get, set
+    abstract TEXT_OPEN: string with get, set
+    [<EmitConstructor>] abstract Create: ?option: GUIParams -> GUI
+
+type [<AllowNullLiteral>] GUIController =
+    abstract domElement: HTMLElement with get, set
+    abstract object: Object with get, set
+    abstract property: string with get, set
+    abstract options: option: obj option -> GUIController
+    abstract name: name: string -> GUIController
+    abstract listen: unit -> GUIController
+    abstract remove: unit -> GUIController
+    abstract onChange: fnc: (obj -> unit) -> GUIController
+    abstract onFinishChange: fnc: (obj -> unit) -> GUIController
+    abstract setValue: value: obj option -> GUIController
+    abstract getValue: unit -> obj option
+    abstract updateDisplay: unit -> GUIController
+    abstract isModified: unit -> bool
+    abstract min: n: float -> GUIController
+    abstract max: n: float -> GUIController
+    abstract step: n: float -> GUIController
+    abstract fire: unit -> GUIController
+
+type [<AllowNullLiteral>] GUIControllerStatic =
+    [<EmitConstructor>] abstract Create: object: Object * property: string -> GUIController
+
+type [<AllowNullLiteral>] GUI__folders =
+    [<EmitIndexer>] abstract Item: folderName: string -> GUI with get, set
