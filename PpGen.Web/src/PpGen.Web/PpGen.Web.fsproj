@@ -5,8 +5,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Content Include="..\..\package.json">
+            <Link>js\package.json</Link>
+        </Content>
+        <Content Include="..\..\webpack.config.js">
+            <Link>js\webpack.config.js</Link>
+        </Content>
         <Compile Include="Utils.fs" />
-        <Compile Include="PixiConstructors.fs" />
         <Compile Include="Api.fs" />
         <Compile Include="App.fs" />
         <Compile Include="Program.fs" />
@@ -24,15 +29,15 @@
         <PackageReference Include="Feliz.Router" Version="3.5.0" />
         <PackageReference Include="Feliz.UseDeferred" Version="1.4.0" />
         <PackageReference Include="Feliz.UseElmish" Version="1.5.0" />
-        <PackageReference Include="FSharp.Control.AsyncRx" Version="1.6.0" />
     </ItemGroup>
 
     <ItemGroup>
-<!--        <ProjectReference Include="..\..\..\..\Fable.Import.RxJS\src\Fable.Import.RxJS\Fable.Import.RxJS.fsproj" />-->
-        
+        <ProjectReference Include="..\..\..\..\Fable.Import.RxJS\src\Fable.Import.RxJS\Fable.Import.RxJS.fsproj" />
         <ProjectReference Include="..\..\..\PpGen.Api\PpGen.Api.fsproj" />
         <ProjectReference Include="..\..\..\PpGen.Utils\PpGen.Utils.fsproj" />
-        <ProjectReference Include="..\Fable.Import.PixiJs\Fable.Import.PixiJs.fsproj" />
+        <ProjectReference Include="..\..\lib\Fable.Import.DatGui\src\Fable.Import.DatGui\Fable.Import.DatGui.fsproj" />
+        <ProjectReference Include="..\..\lib\Fable.Import.StatsJs\src\Fable.Import.StatsJs\Fable.Import.StatsJs.fsproj" />
+        <ProjectReference Include="..\..\lib\Fable.Import.ThreeJs\src\Fable.Import.ThreeJs\Fable.Import.ThreeJs.fsproj" />
     </ItemGroup>
 
 </Project>

@@ -7,7 +7,8 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Browser
 open Browser.Types
-open Fable.Import.PixiJs
+open Fable.Import.ThreeJs.Examples.Jsm.Controls
+open Fable.Import.ThreeJs.Exports
 open Feliz
 
 open PpGen
@@ -50,44 +51,36 @@ module Euclidean =
 
 open Euclidean.Operators
 
+let inline deg2rad a = Math.PI / 180. * a
 
 [<ReactComponent>]
 let Map (cs: int) (points: IObservable<Point seq>) (onGenerateChunk: (int * int) -> unit) =
     let ref = React.useRef(None: HTMLDivElement option)
     React.useEffect(fun () ->
         
-        let app = PIXI.Constructors.Application.Create(width=800., height=600.)
-        ref.current.Value.appendChild(app.view) |> ignore
+        let width, height = 1024., 720.
         
-        let renderer: PIXI.WebGLRenderer = !!app.renderer
-        renderer.backgroundColor <- 0x061639 |> float
+        let scene = THREE.Scene.Create()
         
-        let regionContainer = PIXI.Constructors.Container.Create()
-        app.stage.addChild(regionContainer) |> ignore
+        let renderer = THREE.WebGLRenderer.Create()
+        renderer.setSize(width, height)
+        renderer.setClearColor(!^"#061639")
+        ref.current.Value.appendChild(renderer.domElement) |> ignore
         
-        regionContainer.interactive <- true
-        regionContainer.on(!^"pointerdown", fun (event: PIXI.Interaction.InteractionEvent) ->
-            let p = event.data.getLocalPosition(regionContainer)
-            let cx = int p.x /! cs
-            let cy = int p.y /! cs
-            onGenerateChunk (cx, cy)
-        ) |> ignore
+        let camera = THREE.PerspectiveCamera.Create(90., width / height, 1., 10000.)
+        camera.position.set(0., 500., 0.) |> ignore
         
-        document.addEventListener("keypress", fun event ->
-            let event = event :?> KeyboardEvent
-            match event.code with
-            | "KeyA" -> regionContainer.x <- regionContainer.x + 16.
-            | "KeyD" -> regionContainer.x <- regionContainer.x - 16.
-            | "KeyW" -> regionContainer.y <- regionContainer.y + 16.
-            | "KeyS" -> regionContainer.y <- regionContainer.y - 16.
-            | _ -> ()
-        )
+        let controls = OrbitControls(camera, renderer.domElement)
+        controls.enableDamping <- true
+        controls.dampingFactor <- 0.05
+        controls.maxPolarAngle <- Math.PI / 2.1
+        controls.screenSpacePanning <- false
         
-        let regions: IDictionary<int * int, CanvasRenderingContext2D * PIXI.Texture> = upcast Dictionary()
+        let regions: IDictionary<int * int, _> = upcast Dictionary()
         
         let drawPoint (x: int) (y: int) (h: float) : unit =
             let rx, ry = x /! regionSize, y /! regionSize
-            let ctx, texture =
+            let ctx, mesh =
                 match regions.TryGetValue((rx, ry)) with
                 | true, ctx -> ctx
                 | false, _ ->
@@ -95,17 +88,25 @@ let Map (cs: int) (points: IObservable<Point seq>) (onGenerateChunk: (int * int)
                     let canvas = document.createElement("canvas") :?> HTMLCanvasElement
                     canvas.width <- float regionSize
                     canvas.height <- float regionSize
-                    let texture = PIXI.Constructors.Texture.fromCanvas(canvas)
-                    let sprite = PIXI.Constructors.Sprite.Create(texture)
-                    sprite.x <- rx * regionSize |> float
-                    sprite.y <- ry * regionSize |> float
-                    regionContainer.addChild(sprite) |> ignore
+                    let canvasMap = THREE.CanvasTexture.Create(!^canvas)
+                    canvasMap.magFilter <- THREE.NearestFilter
+                    let material = THREE.MeshBasicMaterial.Create()
+                    material.map <- Some !!canvasMap
+                    let planeGeometry = THREE.PlaneGeometry.Create(float regionSize, float regionSize)
+                    let mesh = THREE.Mesh.Create(planeGeometry, material)
+                    mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
+                    mesh.position.set(
+                        float rx * float regionSize + float regionSize / 2.,
+                        0.0,
+                        float ry * float regionSize + float regionSize / 2.
+                    ) |> ignore
                     
                     let ctx = canvas.getContext_2d()
                     ctx?webkitImageSmoothingEnabled <- false
                     ctx?imageSmoothingEnabled <- false
-                    regions.[(rx, ry)] <- (ctx, texture)
-                    ctx, texture
+                    regions.[(rx, ry)] <- (ctx, mesh)
+                    scene.add(!![| mesh |]) |> ignore
+                    ctx, mesh
             
             let pxr, pyr = x %! regionSize, y %! regionSize
             
@@ -119,19 +120,72 @@ let Map (cs: int) (points: IObservable<Point seq>) (onGenerateChunk: (int * int)
             imageData.data.[2] <- b
             imageData.data.[3] <- 0xFFuy
             ctx.putImageData(imageData, float pxr, float pyr)
-//            texture.update()
+
+            mesh.material.needsUpdate <- true
+            mesh.material.map.Value.needsUpdate <- true
+
             if x %! 50 = 0 && y %! 50 = 0 then
                 printfn $"Drawn point at ({x}, {y})P with ({r}, {g}, {b}) on ({rx}, {ry})R"
             ()
+        
+        let chunkSelection =
+            let material = THREE.LineBasicMaterial.Create()
+            material.color <- THREE.Color.Create(!^"#00F")
+            material.depthTest <- false
+            let planeGeometry = THREE.PlaneGeometry.Create(float cs + 1., float cs + 1.)
+            let edgeGeometry = THREE.EdgesGeometry.Create(planeGeometry)
+            let mesh = THREE.LineSegments.Create(edgeGeometry, material)
+            mesh.renderOrder <- 1000.
+            mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
+            mesh
+        scene.add(!![| chunkSelection |]) |> ignore
+        let mutable chunkSelectionCoords = Unchecked.defaultof<_>
+        
+        let setChunkSelectionCoords (cx: int) (cy: int) =
+            chunkSelectionCoords <- (cx, cy)
+            let x, z = float cx * float cs + float cs / 2. + 0.5, float cy * float cs + float cs / 2. + 0.5
+            chunkSelection.position.set(x, 0., z) |> ignore
+        
+        let mouse = THREE.Vector2.Create()
+        window.addEventListener(
+            "mousemove",
+            !!(fun (event: MouseEvent) ->
+                let rect = renderer.domElement.getBoundingClientRect()
+                let mxs, mys =
+                    (event.clientX - rect?x) / rect.width * 2. - 1.,
+                    -(event.clientY - rect?y) / rect.height * 2. + 1.
+                mouse.set(mxs, mys) |> ignore
+            )
+        )
+        
+        document.addEventListener(
+            "keydown",
+            !!(fun (event: KeyboardEvent) ->
+                if event.key = "g" then onGenerateChunk chunkSelectionCoords
+            )
+        )
+        
+        let raycaster = THREE.Raycaster.Create()
+        
+        let rec render time =
+            controls.update()
+            
+            raycaster.setFromCamera(!!mouse, camera)
+            raycaster.intersectObjects(scene.children)
+            |> Seq.iter ^fun intersection ->
+                let x, z = intersection.point.x, intersection.point.z
+                let cx, cy = x /! float cs |> int, z /! float cs |> int
+                setChunkSelectionCoords cx cy
+            
+            renderer.render(scene, camera)
+            window.requestAnimationFrame(render) |> ignore
+        render 0.
         
         let subscription =
             points
             |> Observable.subscribe (fun pointBuffer ->
                 for point in pointBuffer do
-//                    printfn $"{point.X}"
                     drawPoint point.X point.Y point.Height
-                regions.Values |> Seq.iter (fun (_, tex) -> tex.update())
-                printfn "Updated all textures"
             )
         
         subscription
@@ -155,13 +209,14 @@ let seed = 1UL
 
 let args = { ChunkX = cx; ChunkY = cy; Seed = 1UL; ChunkSizeLog2 = uint s }
 
+open Fable.Import.RxJS.Misc
+
 [<ReactComponent>]
 let App () =
-    let pointObv, points =
+    let pointSubject =
         React.useMemo(
             fun () ->
-                let pointObv, points = AsyncRx.subject ()
-                pointObv.ToObserver(), AsyncRx.toObservable points
+                Fable.Import.RxJS.JsTypes.Subject()
             , [| |]
         )
     
@@ -169,10 +224,10 @@ let App () =
         async {
             let! points = generator.GenerateChunkStream({ args with ChunkX = cx; ChunkY = cy })
             let subscription =
-                points.Subscribe(function
-                    | OnNext x -> pointObv.OnNext(x)
-                    | OnError e -> pointObv.OnError(e)
-                    | OnCompleted -> printfn $"Chunk ({cx}, {cy})C completed"
+                points.Subscribe(Observer.create
+                    (fun x -> pointSubject.next(x))
+                    (fun err -> pointSubject.error(err))
+                    (fun () -> printfn $"Chunk ({cx}, {cy})C completed")
                 )
             ignore subscription
             printfn $"Request chunk generation at ({cx}, {cy})C"
@@ -182,4 +237,4 @@ let App () =
         onGenerateChunk (2, 2)
     )
     
-    Map cs points onGenerateChunk
+    Map cs pointSubject onGenerateChunk

@@ -2,7 +2,7 @@
   "name": "pp-gen-web",
   "version": "1.0.0",
   "scripts": {
-    "build": "dotnet fable ./src/PpGen.Web/ -o build --run npx webpack-dev-server",
+    "build": "dotnet fable ./src/PpGen.Web/ -o build --run npx webpack",
     "watch": "dotnet fable watch ./src/PpGen.Web/ -o build --run npx webpack-dev-server"
   },
   "devDependencies": {
@@ -23,9 +23,7 @@
     "@microsoft/signalr": "^5.0.3",
     "copy-webpack-plugin": "^7.0.0",
     "html-webpack-plugin": "^4.5.2",
-    "pixi.js": "^4.8.9",
     "rxjs": "^6.6.3",
     "webpack-dev-server": "^3.11.2"
-  },
-  "description": "My webpack project"
+  }
 }
