@@ -18,3 +18,4 @@ module DiamondSquare =
     type IGenerator =
         abstract GenerateChunk: ChunkGenerationArgs -> Async<float[,]>
         abstract GenerateChunkStream: ChunkGenerationArgs -> Async<IObservable<Point seq>>
+        abstract GenerateChunkInterpolated: ChunkGenerationArgs -> Async<IObservable<float[]>>

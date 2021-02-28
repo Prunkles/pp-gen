@@ -10,10 +10,15 @@ type PointPosition = (struct (int * int))
 type ChunkPosition = (struct (int * int))
 type AreaPosition = (struct (int * int))
 
+type Point = (struct (PointPosition * float))
 
 type Chunk<'a> =
     { Data: 'a[,] }
 
+
+module Point =
+    
+    let inline create x y h : Point = struct(struct(x, y), h)
 
 
 type Noise = int * int -> float //PointPosition -> float
@@ -21,11 +26,11 @@ type Noise = int * int -> float //PointPosition -> float
 
 module Step =
     
-    let inline private s2cs (s: uint) = pown (1G+1G) (int s) + 1G
+    let inline private s2cs (s: uint) = pown (1G+1G) (int s)
+    let inline private s2cs1 (s: uint) = s2cs s + 1G
     
-    let square getPoint setPoint s (iter: uint) (*initState: 's) (folder*) =
-        let cs1 = s2cs s
-        let cs = cs1 - 1
+    let square getPoint setPoint s (iter: uint) =
+        let cs = s2cs s
         let r = pown 2 (s - iter |> int) / 2
         
         let points = seq {
@@ -33,7 +38,7 @@ module Step =
                 for y in -r .. 2*r .. cs + r ->
                     struct(x, y)
         }
-//        let mutable state = initState
+        
         for x, y in points do
             let sum =
                 getPoint (x - r, y - r) +
@@ -43,13 +48,10 @@ module Step =
             let avg = sum / 4.
             let value = avg
             setPoint (x, y) value
-//            state <- folder state ((x, y), value)
-//        state
     
     
     let diamond getPoint setPoint s (iter: uint) =
-        let cs1 = s2cs s
-        let cs = cs1 - 1
+        let cs = s2cs s
         let r = pown 2 (s - iter |> int) / 2
         
         let points: struct(_*_) seq = seq {
@@ -77,8 +79,7 @@ module Step =
     
     
     let init setPoint s =
-        let cs1 = s2cs s
-        let cs = cs1 - 1
+        let cs = s2cs s
         let points = seq {
             for x in -cs .. cs .. 2*cs do
                 for y in -cs .. cs .. 2*cs do
@@ -213,3 +214,70 @@ module Generator =
             }
         
         { new IObservable<PointPosition * float> with member _.Subscribe(obv) = sub obv }
+    
+    
+    let generateInterpolated (s: uint) (cx, cy) (noise: Noise) : IObservable<Chunk<float>> =
+        
+        let sub (obv: IObserver<Chunk<float>>) =
+            
+            let dispatchChunk (chunk: Chunk<float>)  =
+                obv.OnNext(chunk)
+            
+            let interpolateArea (iter: uint) (sourceArea: GenArea<float>) : Chunk<float> =
+                let destArea =
+                    { Chunk = { Data = Array2D.copy sourceArea.Chunk.Data }
+                      Outside = Dictionary(sourceArea.Outside)
+                      ChunkSize = sourceArea.ChunkSize }
+                let s = log2 (float sourceArea.ChunkSize) |> uint
+                
+                let getPoint (x, y) =
+                    GenArea.getPoint destArea (x, y)
+                
+                let setPoint (x, y) h =
+                    GenArea.setPoint destArea (x, y) h
+                
+                for i in iter .. s-1u do
+                    Step.square  getPoint setPoint s i
+                    Step.diamond getPoint setPoint s i
+                
+                destArea.Chunk
+            
+            let area = GenArea.createEmpty s nan
+            let cs = area.ChunkSize
+            
+            let getPoint (x, y) =
+                GenArea.getPoint area (x, y)
+            
+            let setPoint i (x, y) value =
+                let gx, gy = cx * cs + x, cy * cs + y
+                let r = pown 2 (s - i |> int) / 2
+                let q = noise (gx, gy)
+                let value = applyNoise value q r i
+                GenArea.setPoint area (x, y) value
+            
+            let setInitPoint (x, y) =
+                let gx, gy = cx * cs + x, cy * cs + y
+                let value = noise (gx, gy)
+                GenArea.setPoint area (x, y) value
+            
+            let cts = new CancellationTokenSource()
+            
+            let work = async {
+                Step.init setInitPoint s
+                for i in 0u .. s - 1u do
+                    Step.square  getPoint (setPoint i) s i
+                    area |> interpolateArea i |> dispatchChunk
+                    Step.diamond getPoint (setPoint i) s i
+                    area |> interpolateArea i |> dispatchChunk
+                obv.OnCompleted()
+            }
+            
+            Async.Start(work, cts.Token)
+            
+            { new IDisposable with
+                member _.Dispose() =
+                    cts.Cancel()
+                    cts.Dispose()
+            }
+        
+        { new IObservable<Chunk<float>> with member _.Subscribe(obv) = sub obv }

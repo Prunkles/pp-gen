@@ -13,6 +13,7 @@
         </Content>
         <Compile Include="Utils.fs" />
         <Compile Include="Api.fs" />
+        <Compile Include="Scene.fs" />
         <Compile Include="App.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
@@ -34,6 +35,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\..\Fable.Import.RxJS\src\Fable.Import.RxJS\Fable.Import.RxJS.fsproj" />
         <ProjectReference Include="..\..\..\PpGen.Api\PpGen.Api.fsproj" />
+        <ProjectReference Include="..\..\..\PpGen.DiamondSquare\PpGen.DiamondSquare.fsproj" />
         <ProjectReference Include="..\..\..\PpGen.Utils\PpGen.Utils.fsproj" />
         <ProjectReference Include="..\..\lib\Fable.Import.DatGui\src\Fable.Import.DatGui\Fable.Import.DatGui.fsproj" />
         <ProjectReference Include="..\..\lib\Fable.Import.StatsJs\src\Fable.Import.StatsJs\Fable.Import.StatsJs.fsproj" />
