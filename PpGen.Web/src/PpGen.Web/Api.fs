@@ -135,24 +135,24 @@ module MockGenerator =
 
 
 
-module DirectGenerator =
-    
-    open System
-    open Fable.Core
-    open Fable.Import.RxJS
-    open PpGen.DiamondSquare
-    
-    let generateChunkStream (seed: uint64) (s: uint) cx cy = async {
-        let noise (x, y) =
-            sin (float x) * cos (float y)
-        let points = Generator.generateReactive s (cx, cy) noise
-        let points =
-            points
-            |> RxObservable.ofObservable
-            |> RxOp.map ^fun ((x, y), h) ->
-                Seq.singleton { Height = h; X = x; Y = y }
-        return points :> IObservable<_>
-    }
+//module DirectGenerator =
+//    
+//    open System
+//    open Fable.Core
+//    open Fable.Import.RxJS
+//    open PpGen.DiamondSquare
+//    
+//    let generateChunkStream (seed: uint64) (s: uint) cx cy = async {
+//        let noise (x, y) =
+//            sin (float x) * cos (float y)
+//        let points = Generator.generateReactive s (cx, cy) noise
+//        let points =
+//            points
+//            |> RxObservable.ofObservable
+//            |> RxOp.map ^fun ((x, y), h) ->
+//                Seq.singleton { Height = h; X = x; Y = y }
+//        return points :> IObservable<_>
+//    }
 
 
 //type DirectGenerator() =

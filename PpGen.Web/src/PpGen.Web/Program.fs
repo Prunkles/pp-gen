@@ -6,8 +6,4 @@ open Feliz
 open App
 
 
-//async {
-//    ReactDOM.render(App, Dom.document.getElementById("app"))
-//}
-//|> Async.StartImmediate
 ReactDOM.render(App, Dom.document.getElementById("app"))
