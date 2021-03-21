@@ -1,11 +1,13 @@
-module Server
+module PpGen.Server.Program
 
 open Microsoft.AspNetCore.Builder
-open PpGen.Api.FableSignalR
-open PpGen.Server.FableSignalR
+open Microsoft.Extensions.DependencyInjection
+open PpGen.Api.Fabrics
+open PpGen.Server.Generators.DiamondSquare
 open Saturn
-open Config
-open Fable.SignalR
+
+open PpGen.Server.Router
+
 
 type ApplicationBuilder with
     [<CustomOperation "use_websockets">]
@@ -35,18 +37,13 @@ let app = application {
     use_static "static"
     use_gzip
     use_websockets
-//    use_config (fun _ -> {connectionString = "DataSource=database.sqlite"} ) //TODO: Set development time configuration
     
-    use_router Router.disqFableRemotingHandler
-    use_router Router.disqRouter
-//    use_signalr (
-//        configure_signalr {
-//            endpoint DiSq.endpoint
-//            send Hub.send
-//            invoke Hub.invoke
-//            stream_from Hub.Stream.streamFrom
-//        }
-//    )
+    service_config (fun services ->
+        services.AddTransient<IDiamondSquareHeightmapGeneratorFabric, DiamondSquareHeightmapGeneratorFabric>() |> ignore
+        services
+    )
+    
+    use_router DiamondSquare.router
 }
 
 [<EntryPoint>]

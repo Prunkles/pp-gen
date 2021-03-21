@@ -5,9 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Types.fs" />
-        <Compile Include="FableRemoting.fs" />
-        <Compile Include="FableSignalR.fs" />
         <Compile Include="Library.fs" />
     </ItemGroup>
 

@@ -3,19 +3,18 @@ namespace PpGen.Api
 open System
 
 
-module DiamondSquare =
+type Chunk =
+    { Heights: float[]
+      Width: int
+      Height: int }
+
+type IHeightmapGenerator =
+    abstract GenerateChunk: x: int * y: int -> Async<IObservable<Chunk>>
+
+
+module Fabrics =
     
-    type ChunkGenerationArgs =
-        { ChunkX: int
-          ChunkY: int
-          Seed: uint64
-          ChunkSizeLog2: uint32 }
+    type IDiamondSquareHeightmapGeneratorFabric =
+        abstract Create: seed: uint64 * size: byte -> IHeightmapGenerator
+        abstract CreateInterpolated: seed: uint64 * size: byte -> IHeightmapGenerator
     
-    type Point =
-        { Height: float
-          X: int; Y: int }
-    
-    type IGenerator =
-        abstract GenerateChunk: ChunkGenerationArgs -> Async<float[,]>
-        abstract GenerateChunkStream: ChunkGenerationArgs -> Async<IObservable<Point seq>>
-        abstract GenerateChunkInterpolated: ChunkGenerationArgs -> Async<IObservable<float[]>>
