@@ -45,3 +45,31 @@ module Async =
             result <- r
         } |> Async.StartImmediate
         result
+
+module Euclidean =
+    
+    let inline divEuclid x y =
+        let q = x / y
+        if x % y < LanguagePrimitives.GenericZero
+        then
+            if y > LanguagePrimitives.GenericZero
+            then q - LanguagePrimitives.GenericOne
+            else q + LanguagePrimitives.GenericOne
+        else
+            q
+    
+    let inline remEuclid x y =
+        let r = x % y
+        if r < LanguagePrimitives.GenericZero
+        then
+            if y < LanguagePrimitives.GenericZero
+            then r - y
+            else r + y
+        else
+            r
+    
+    module Operators =
+        let inline ( /! ) lhs rhs = divEuclid lhs rhs
+        let inline ( %! ) lhs rhs = remEuclid lhs rhs
+
+let inline deg2rad a = System.Math.PI / 180. * a
