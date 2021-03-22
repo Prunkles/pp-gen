@@ -31,7 +31,7 @@ TBD
 
 # Зачем?
 
-TBD
+![](https://lh3.googleusercontent.com/proxy/r-nT0qez-qSlMeR0NWfiUhtkw56HGs3ftOaIPsbFL2WP4L29820BGrttL1h1uZGoIe2sEJOpYBBOYZODLGiRadcyWW_mP9I6)
 
 # Алгоритмы
 
