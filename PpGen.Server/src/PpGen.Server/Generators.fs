@@ -21,29 +21,33 @@ module Generators =
         let output = Standart.Hash.xxHash.xxHash64.ComputeHash(bytes, bytes.Length, seed)
         float output / float System.UInt64.MaxValue
     
-    let generate seed size =
+    let create seed size =
+        let cs = pown 2 (int size)
         let generator cx cy = async {
             let heights = PpGen.DiamondSquare.Generator.generate size (cx, cy) (noise seed)
+            let heights = Seq.cast<float> heights.[0..cs-1, 0..cs-1] |> Seq.toArray
             let chunk =
-                { Heights = Seq.cast<float> heights |> Seq.toArray
-                  Width = pown 2 (int size); Height = pown 2 (int size) }
+                { Heights = heights
+                  Width = cs; Height = cs }
             return Observable.single chunk
         }
         HeightmapGenerator.create generator
     
-    let generateInterpolated seed size =
+    let createInterpolated seed size =
+        let cs = pown 2 (int size)
         let generator cx cy = async {
             let chunks = PpGen.DiamondSquare.Generator.generateInterpolated size (cx, cy) (noise seed)
             return
                 chunks
                 |> Observable.map (fun chunk ->
-                    { Heights = Seq.cast<float> chunk.Data |> Seq.toArray
-                      Width = pown 2 (int size); Height = pown 2 (int size) }
+                    let heights = Seq.cast<float> chunk.Data.[0..cs-1, 0..cs-1] |> Seq.toArray
+                    { Heights = heights
+                      Width = cs; Height = cs }
                 )
         }
         HeightmapGenerator.create generator
 
 type DiamondSquareHeightmapGeneratorFabric() =
     interface IDiamondSquareHeightmapGeneratorFabric with
-        member this.Create(seed, size) = Generators.generate seed (uint size)
-        member this.CreateInterpolated(seed, size) = Generators.generateInterpolated seed (uint size)
+        member this.Create(seed, size) = Generators.create seed (uint size)
+        member this.CreateInterpolated(seed, size) = Generators.createInterpolated seed (uint size)

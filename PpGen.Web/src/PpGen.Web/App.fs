@@ -59,10 +59,10 @@ let App () =
         } |> Async.StartImmediate
     
     React.useEffectOnce(fun () ->
-        onGenerateChunk (0, 0)
-        onGenerateChunk (-1, 0)
-        onGenerateChunk (0, -1)
-        onGenerateChunk (-1, -1)
+        onGenerateChunk (1, 1)
+        onGenerateChunk (1, 2)
+        onGenerateChunk (2, 1)
+        onGenerateChunk (2, 2)
     )
     
     Map cs chunkSubject onGenerateChunk
