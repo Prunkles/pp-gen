@@ -28,3 +28,13 @@ TBD
 - Трёхмерное отображение.\
     ![](https://www.3d-map-generator.com/wp-content/uploads/2018/12/atlas-feature-tools-heightmap-tools_grayscale-heightmap-example.png)
 
+
+# Зачем?
+
+TBD
+
+# Алгоритмы
+
+## Diamond Square
+
+TBD
