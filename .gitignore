@@ -1,8 +1,12 @@
+/.idea/
+/.ionide/
+
 bin/
 obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
 
+*.DotSettings.user
 
 node_modules/
