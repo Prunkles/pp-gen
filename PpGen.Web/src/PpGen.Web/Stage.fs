@@ -285,7 +285,7 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
 
 let configureStage cs (chunks: IObservable<int * int * Chunk>) onGenerateChunk =
     let stage = Stage()
-    let heightmapRenderer = new ThreeHeightmap3DRenderer(stage)
+    let heightmapRenderer = new ThreeHeightmapRenderer(stage)
     let subscription =
         chunks
         |> fun x -> !!x : IRxObservable<int * int * Chunk>
