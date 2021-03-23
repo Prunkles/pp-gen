@@ -5,9 +5,7 @@
     </PropertyGroup>
     <ItemGroup>
 
-        <Compile Include="FableRemoting.fs" />
-
-        <Compile Include="FableSignalR.fs" />
+        <Compile Include="Generators.fs" />
 
         <Compile Include="Router.fs" />
         <Compile Include="Program.fs" />
