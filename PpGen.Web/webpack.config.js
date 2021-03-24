@@ -39,6 +39,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const TerserPlugin = require('terser-webpack-plugin');
 
+const isProduction = !process.argv.find(v => v.indexOf('webpack-dev-server') !== -1);
 
 function resolve(filePath) {
     return path.isAbsolute(filePath) ? filePath : path.join(__dirname, filePath);
@@ -47,7 +48,10 @@ function resolve(filePath) {
 module.exports = {
     mode: 'development',
     entry: {
-        webapp: resolve("build/Program.js"),
+        webapp: [
+            resolve("build/Program.js"),
+            resolve("styles/main.css")
+        ],
     },
     output: {
         path: resolve("dist/"),
@@ -74,35 +78,39 @@ module.exports = {
         host: '0.0.0.0',
         port: 8080,
         proxy: {
-            // '/api/**': {
-            //     target: 'http://localhost:' + '8085',
-            //     changeOrigin: true,
-            // },
+            '/api/**': {
+                target: 'http://localhost:' + '8085',
+                changeOrigin: true,
+                pathRewrite: {
+                    '^/api': '',
+                },
+                ws: true,
+            },
         },
     },
+    
 
     module: {
-        rules: [{
-            test: /.(less|css)$/,
-
-            use: [{
-                loader: MiniCssExtractPlugin.loader
-            }, {
-                loader: "style-loader"
-            }, {
-                loader: "css-loader",
-
-                options: {
-                    sourceMap: true
-                }
-            }, {
-                loader: "less-loader",
-
-                options: {
-                    sourceMap: true
-                }
-            }]
-        }]
+        rules: [
+            {
+                test: /.(sass|scss|css)$/,
+                use: [
+                    isProduction
+                        ? MiniCssExtractPlugin.loader
+                        : "style-loader",
+                    {
+                        loader: "css-loader",
+                        options: {
+                            sourceMap: true
+                        }
+                    },
+                    {
+                        loader: 'sass-loader',
+                        options: { implementation: require("sass") }
+                    },
+                ]
+            }
+        ]
     },
 
     optimization: {

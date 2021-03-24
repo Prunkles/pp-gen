@@ -14,34 +14,36 @@ open Fable.Import.ThreeJs.Exports
 open Fable.Import.ThreeJs.Types.__geometries_PlaneGeometry
 open Fable.Import.ThreeJs.Types.__helpers_HemisphereLightHelper
 open Fable.Import.ThreeJs.Types.__objects_Mesh
+open Fable.Import.ThreeJs.Types.__renderers_WebGLRenderer
 open Fable.Import.ThreeJs.Types.__helpers_GridHelper
+open Fable.Import.DatGui.Exports
+open Fable.Import.DatGui.Types
 open PpGen
 open PpGen.Api
 open PpGen.Web.Utils
 open PpGen.Utils
 open Euclidean.Operators
 
-let palette = Palettes.greyscale
-
-let regionSize = 1000
 
 type IHeightmapRenderer =
     abstract RenderRect: x: int * y: int * w: int * h: int * heights: float[] -> unit
 
 
-type Stage() =
+type Stage(canvas: HTMLCanvasElement) =
     
-    let width, height = 1024., 720.
+//    let width, height = 1024., 720.
     
     let scene = THREE.Scene.Create()
     
-    let renderer = THREE.WebGLRenderer.Create()
+    let renderer = THREE.WebGLRenderer.Create(!!{| canvas = canvas |})
     do
-        renderer.setSize(width, height)
+//        renderer.setSize(1024., 720.)
         renderer.setClearColor(!^"#061639")
 //        renderer.sortObjects <- true
     
-    let camera = THREE.PerspectiveCamera.Create(90., width / height, 1., 10000.)
+    let camera =
+        let aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight
+        THREE.PerspectiveCamera.Create(90., aspect, 1., 10000.)
     do camera.position.set(0., 500., 0.) |> ignore
     
     let controls = OrbitControls(camera, renderer.domElement)
@@ -51,11 +53,23 @@ type Stage() =
         controls.maxPolarAngle <- Math.PI / 2.1
         controls.screenSpacePanning <- false
     
+    let resizeRendererToDisplaySize (renderer: Renderer) =
+        let canvas = renderer.domElement
+        let width, height = canvas.clientWidth, canvas.clientHeight
+        let needResize = canvas.width <> width || canvas.height <> height
+        if needResize then
+            renderer.setSize(width, height, false)
+        needResize
+    
     member _.Scene = scene
     member _.Renderer = renderer
     member _.Camera = camera
     
     member _.Render() =
+        if (resizeRendererToDisplaySize renderer) then
+            let canvas = renderer.domElement
+            camera.aspect <- canvas.clientWidth / canvas.clientHeight
+            camera.updateProjectionMatrix()
         controls.update()
         renderer.render(scene, camera)
     
@@ -67,7 +81,7 @@ type Region =
     { CanvasContext: CanvasRenderingContext2D
       Mesh: Mesh<PlaneGeometry, MeshBasicMaterial> }
 
-type ThreeHeightmapRenderer(stage: Stage) =
+type ThreeHeightmapRenderer(stage: Stage, palette, regionSize) =
     let resources = ResizeArray<obj>()
     
     let regions: IDictionary<int * int, Region> = upcast Dictionary()
@@ -134,86 +148,95 @@ type ThreeHeightmapRenderer(stage: Stage) =
                 region.Mesh.material.needsUpdate <- true
                 region.Mesh.material.map.Value.needsUpdate <- true
     
-    interface IHeightmapRenderer with
-        member this.RenderRect(x, y, w, h, heights) = drawRect x y w h heights
+    member _.DrawRect(rectX0, rectY0, rectW, rectH, heights: float[]) = drawRect rectX0 rectY0 rectW rectH heights
     
-    interface IDisposable with
-        member _.Dispose() = resources |> Seq.iter ^fun r -> r?dispose()
-
-
-type ThreeHeightmap3DRenderer(stage: Stage) =
-    let resources = ResizeArray<obj>()
-    
-    let regions: IDictionary<int * int, Region> = upcast Dictionary()
-    
-    let getRegion rx ry =
-        let createRegion rx ry =
-            printfn $"Create new region at ({rx}, {ry})R"
-            let canvas = document.createElement("canvas") :?> HTMLCanvasElement
-            canvas.width <- float regionSize
-            canvas.height <- float regionSize
-            let canvasTexture = THREE.CanvasTexture.Create(!^canvas)
-            canvasTexture.magFilter <- THREE.NearestFilter
-            let material = THREE.MeshBasicMaterial.Create()
-            material.map <- Some !!canvasTexture
-            let shaderMaterial = THREE.ShaderMaterial.Create()
-            
-            let planeGeometry = THREE.PlaneGeometry.Create(float regionSize, float regionSize, float regionSize / 32., float regionSize / 32.)
-            let mesh = THREE.Mesh.Create(planeGeometry, material)
-            mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
-            mesh.position.set(
-                float rx * float regionSize + float regionSize / 2.,
-                0.0,
-                float ry * float regionSize + float regionSize / 2.
-            ) |> ignore
-            
-            let ctx = canvas.getContext_2d()
-            ctx?webkitImageSmoothingEnabled <- false
-            ctx?imageSmoothingEnabled <- false
-            
-            let region = { CanvasContext = ctx; Mesh = mesh }
-            regions.[(rx, ry)] <- region
-            stage.Scene.add(!![| mesh |]) |> ignore
-            resources.AddRange([canvasTexture; material; planeGeometry])
-            
-            region
-        
-        match regions.TryGetValue((rx, ry)) with
-        | true, region -> region
-        | false, _ -> createRegion rx ry
-    
-    let drawRect rectX0 rectY0 rectW rectH (heights: float[]) =
-        let rs = regionSize
-        let rectX1, rectY1 = rectX0 + rectW - 1, rectY0 + rectH - 1
-        let regionX0, regionY0 = rectX0 /! rs, rectY0 /! rs
-        let regionX1, regionY1 = rectX1 /! rs, rectY1 /! rs
-        for rx in regionX0 .. regionX1 do
-            for ry in regionY0 .. regionY1 do
-                let region = getRegion rx ry
-                let intX0, intY0 = max (rx * rs) rectX0, max (ry * rs) rectY0
-                let intX1, intY1 = min ((rx + 1) * rs - 1) rectX1, min ((ry + 1) * rs - 1) rectY1
-                let intW, intH = intX1 - intX0 + 1, intY1 - intY0 + 1
-                let imageData = region.CanvasContext.createImageData(intW |> float, intH |> float)
-                for x in intX0 .. intX1 do
-                    for y in intY0 .. intY1 do
-                        let imageIdx = (y - intY0) * intW + (x - intX0) // transposed
-                        let heightIdx = (x - rectX0) * rectH + (y - rectY0)
-                        let h = heights.[heightIdx]
-                        let h = (h + 1.) / 3. |> max 0. |> min 1.
-                        let (Rgb (r, g, b)) = Palette.pick palette h
-                        imageData.data.[imageIdx * 4 + 0] <- r
-                        imageData.data.[imageIdx * 4 + 1] <- g
-                        imageData.data.[imageIdx * 4 + 2] <- b
-                        imageData.data.[imageIdx * 4 + 3] <- 0xFFuy
-                region.CanvasContext.putImageData(imageData, intX0 %! rs |> float, intY0 %! rs |> float)
-                region.Mesh.material.needsUpdate <- true
-                region.Mesh.material.map.Value.needsUpdate <- true
+    member this.Clear() =
+        (this :> IDisposable).Dispose()
     
     interface IHeightmapRenderer with
         member this.RenderRect(x, y, w, h, heights) = drawRect x y w h heights
     
     interface IDisposable with
-        member _.Dispose() = resources |> Seq.iter ^fun r -> r?dispose()
+        member _.Dispose() =
+            resources |> Seq.iter ^fun r -> r?dispose()
+            let objects = regions.Values |> Seq.map ^fun r -> r.Mesh
+            stage.Scene.remove(!!objects) |> ignore
+    
+
+
+//type ThreeHeightmap3DRenderer(stage: Stage) =
+//    let resources = ResizeArray<obj>()
+//    
+//    let regions: IDictionary<int * int, Region> = upcast Dictionary()
+//    
+//    let getRegion rx ry =
+//        let createRegion rx ry =
+//            printfn $"Create new region at ({rx}, {ry})R"
+//            let canvas = document.createElement("canvas") :?> HTMLCanvasElement
+//            canvas.width <- float regionSize
+//            canvas.height <- float regionSize
+//            let canvasTexture = THREE.CanvasTexture.Create(!^canvas)
+//            canvasTexture.magFilter <- THREE.NearestFilter
+//            let material = THREE.MeshBasicMaterial.Create()
+//            material.map <- Some !!canvasTexture
+//            let shaderMaterial = THREE.ShaderMaterial.Create()
+//            
+//            let planeGeometry = THREE.PlaneGeometry.Create(float regionSize, float regionSize, float regionSize / 32., float regionSize / 32.)
+//            let mesh = THREE.Mesh.Create(planeGeometry, material)
+//            mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
+//            mesh.position.set(
+//                float rx * float regionSize + float regionSize / 2.,
+//                0.0,
+//                float ry * float regionSize + float regionSize / 2.
+//            ) |> ignore
+//            
+//            let ctx = canvas.getContext_2d()
+//            ctx?webkitImageSmoothingEnabled <- false
+//            ctx?imageSmoothingEnabled <- false
+//            
+//            let region = { CanvasContext = ctx; Mesh = mesh }
+//            regions.[(rx, ry)] <- region
+//            stage.Scene.add(!![| mesh |]) |> ignore
+//            resources.AddRange([canvasTexture; material; planeGeometry])
+//            
+//            region
+//        
+//        match regions.TryGetValue((rx, ry)) with
+//        | true, region -> region
+//        | false, _ -> createRegion rx ry
+//    
+//    let drawRect rectX0 rectY0 rectW rectH (heights: float[]) =
+//        let rs = regionSize
+//        let rectX1, rectY1 = rectX0 + rectW - 1, rectY0 + rectH - 1
+//        let regionX0, regionY0 = rectX0 /! rs, rectY0 /! rs
+//        let regionX1, regionY1 = rectX1 /! rs, rectY1 /! rs
+//        for rx in regionX0 .. regionX1 do
+//            for ry in regionY0 .. regionY1 do
+//                let region = getRegion rx ry
+//                let intX0, intY0 = max (rx * rs) rectX0, max (ry * rs) rectY0
+//                let intX1, intY1 = min ((rx + 1) * rs - 1) rectX1, min ((ry + 1) * rs - 1) rectY1
+//                let intW, intH = intX1 - intX0 + 1, intY1 - intY0 + 1
+//                let imageData = region.CanvasContext.createImageData(intW |> float, intH |> float)
+//                for x in intX0 .. intX1 do
+//                    for y in intY0 .. intY1 do
+//                        let imageIdx = (y - intY0) * intW + (x - intX0) // transposed
+//                        let heightIdx = (x - rectX0) * rectH + (y - rectY0)
+//                        let h = heights.[heightIdx]
+//                        let h = (h + 1.) / 3. |> max 0. |> min 1.
+//                        let (Rgb (r, g, b)) = Palette.pick palette h
+//                        imageData.data.[imageIdx * 4 + 0] <- r
+//                        imageData.data.[imageIdx * 4 + 1] <- g
+//                        imageData.data.[imageIdx * 4 + 2] <- b
+//                        imageData.data.[imageIdx * 4 + 3] <- 0xFFuy
+//                region.CanvasContext.putImageData(imageData, intX0 %! rs |> float, intY0 %! rs |> float)
+//                region.Mesh.material.needsUpdate <- true
+//                region.Mesh.material.map.Value.needsUpdate <- true
+//    
+//    interface IHeightmapRenderer with
+//        member this.RenderRect(x, y, w, h, heights) = drawRect x y w h heights
+//    
+//    interface IDisposable with
+//        member _.Dispose() = resources |> Seq.iter ^fun r -> r?dispose()
 
 
 
@@ -283,9 +306,12 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
         member _.Dispose() = resources |> Seq.iter ^fun r -> r?dispose()
 
 
-let configureStage cs (chunks: IObservable<int * int * Chunk>) onGenerateChunk =
-    let stage = Stage()
-    let heightmapRenderer = new ThreeHeightmapRenderer(stage)
+let configureStage cs (chunks: IObservable<int * int * Chunk>) palette onGenerateChunk =
+    let canvas = document.createElement("canvas") :?> HTMLCanvasElement
+    canvas.classList.add("stage-canvas")
+    
+    let stage = Stage(canvas)
+    let heightmapRenderer = new ThreeHeightmapRenderer(stage, palette, 1000)
     let subscription =
         chunks
         |> fun x -> !!x : IRxObservable<int * int * Chunk>
@@ -296,15 +322,18 @@ let configureStage cs (chunks: IObservable<int * int * Chunk>) onGenerateChunk =
     
     let chunkSelection = new ChunkSelection(stage, cs, onGenerateChunk)
     
-    let rec render time =
+    let render time =
         chunkSelection.Render(stage.Camera)
         stage.Render()
-        window.requestAnimationFrame(render) |> ignore
-    do render 0.
     
-    { new IDisposable with
-        member _.Dispose() =
-            subscription.Dispose()
-            (heightmapRenderer :> IDisposable).Dispose()
-            (chunkSelection :> IDisposable).Dispose()
-    }, stage.DomElement
+    let rec animate time =
+        render time
+        window.requestAnimationFrame(animate) |> ignore
+    window.requestAnimationFrame(animate) |> ignore
+    
+    Disposable.concat [
+        subscription
+        heightmapRenderer
+        chunkSelection
+        Disposable.create ^fun () -> printfn "Stage disposed"
+    ], stage.DomElement

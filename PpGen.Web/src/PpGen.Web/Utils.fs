@@ -73,3 +73,12 @@ module Euclidean =
         let inline ( %! ) lhs rhs = remEuclid lhs rhs
 
 let inline deg2rad a = System.Math.PI / 180. * a
+
+[<RequireQualifiedAccess>]
+module Disposable =
+    open System
+    
+    let inline create dispose = { new IDisposable with member _.Dispose() = dispose () }
+    
+    let concat (disposables: IDisposable seq) =
+        create (fun () -> disposables |> Seq.iter (fun d -> d.Dispose()))

@@ -5,64 +5,97 @@ open FSharp.Control
 open Browser.Types
 open Fable.Import.RxJS
 open Feliz
-open Fable.Import.RxJS.Misc
+open Feliz.Bulma
 
 open PpGen.Api
 open PpGen.Api.Fabrics
 open PpGen.Web.Api
 open PpGen.Web.Utils
-
+open PpGen.Web.Gui
 
 
 [<ReactComponent>]
-let Map (cs: int) (chunks: IObservable<int * int * Chunk>) (onGenerateChunk: (int * int) -> unit) =
-    let ref = React.useRef(None: HTMLDivElement option)
+let Stage (cs: int) (chunks: IObservable<int * int * Chunk>) palette (onGenerateChunk: (int * int) -> unit) =
+    let ref = React.useRef(None: HTMLElement option)
     React.useEffect(fun () ->
-        let disposable, domElement = Stage.configureStage cs chunks onGenerateChunk
+        let disposable, domElement = Stage.configureStage cs chunks palette onGenerateChunk
         ref.current.Value.appendChild(domElement) |> ignore
-        disposable
-    , [| |])
+        Disposable.concat [
+            disposable
+            Disposable.create ^fun () -> ref.current.Value.removeChild(domElement) |> ignore
+        ]
+    , [| box cs; box palette; box onGenerateChunk; box chunks |])
     
     Html.div [
+        prop.id "stage"
         prop.ref ref
     ]
 
 
-let s = 8
-let cs = pown 2 s
-let seed = 1UL
-
-let heightmapGenerator: IHeightmapGenerator =
-    (DiamondSquareHeightmapGeneratorFabric() :> IDiamondSquareHeightmapGeneratorFabric).CreateInterpolated(seed, byte s)
-
-
 [<ReactComponent>]
 let App () =
-    let chunkSubject =
+    let guiProps, setGuiProps = React.useState(fun () -> GuiProps.Default)
+    let seed = guiProps.Seed
+    let palette = guiProps.Palette
+    let algorithm = guiProps.Algorithm
+    
+    let heightmapGenerator =
         React.useMemo(
-            fun () -> JsTypes.Subject()
-            , [| |]
+            fun () ->
+                match algorithm with
+                | AlgorithmProps.DiamondSquare algorithm ->
+                    (DiamondSquareHeightmapGeneratorFabric() :> IDiamondSquareHeightmapGeneratorFabric)
+                        .CreateInterpolated(seed, byte algorithm.Size)
+                | AlgorithmProps.PerlinNoise algorithm ->
+                    invalidOp "Unsupported"
+            , [| box seed; box algorithm |]
         )
     
-    let onGenerateChunk (cx, cy) =
-        async {
-            let! chunks = heightmapGenerator.GenerateChunk(cx, cy)
-            
-            let subscription =
-                chunks.Subscribe(Observer.create
-                    (fun chunk -> chunkSubject.next((cx, cy, chunk)))
-                    (fun err -> chunkSubject.error(err))
-                    (fun () -> printfn $"Chunk ({cx}, {cy})C completed")
-                )
-            ignore subscription
-            printfn $"Request chunk generation at ({cx}, {cy})C"
-        } |> Async.StartImmediate
+    let chunkSubject = React.useMemo((fun () -> printfn "Create chunk subject"; JsTypes.Subject()), [| box guiProps |])
     
-    React.useEffectOnce(fun () ->
-        onGenerateChunk (1, 1)
-        onGenerateChunk (1, 2)
-        onGenerateChunk (2, 1)
-        onGenerateChunk (2, 2)
-    )
+    let generateChunk =
+        React.useCallback(
+            fun (cx, cy) ->
+                async {
+                    let! chunks = heightmapGenerator.GenerateChunk(cx, cy)
+                    
+                    let subscription =
+                        chunks.Subscribe(Observer.create
+                            (fun chunk -> chunkSubject.next((cx, cy, chunk)))
+                            (fun err -> chunkSubject.error(err))
+                            (fun () -> printfn $"Chunk ({cx}, {cy})C completed")
+                        )
+                    ignore subscription
+                    printfn $"Request chunk generation at ({cx}, {cy})C"
+                } |> Async.StartImmediate
+            , [| box heightmapGenerator; box chunkSubject |]
+        )
     
-    Map cs chunkSubject onGenerateChunk
+    React.useEffect(fun () ->
+        generateChunk (1, 1)
+    , [| box guiProps |])
+    
+    Html.div [
+        Bulma.columns [
+            Bulma.column [
+                column.is9
+                prop.style [
+                    style.padding 0
+                ]
+                prop.children [
+                    match algorithm with
+                    | AlgorithmProps.DiamondSquare algorithm ->
+                        let cs = pown 2 algorithm.Size
+                        Stage cs chunkSubject palette generateChunk
+                    | AlgorithmProps.PerlinNoise algorithm ->
+                        invalidOp "Unsupported"
+                ]
+            ]
+            Bulma.column [
+                column.is3
+                prop.children [
+                    Gui guiProps setGuiProps
+                ]
+            ]
+        ]
+    ]

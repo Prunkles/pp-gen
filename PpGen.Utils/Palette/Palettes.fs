@@ -20,7 +20,7 @@ let lefebrve2 =
         255, (255, 255, 255)
     ] |> Seq.map (fun (h, c) -> float h / 255., c))
 
-let greyscale =
+let grayscale =
     Palette (fun h ->
         let gray = h * 255.
         Rgb.create gray gray gray

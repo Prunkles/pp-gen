@@ -15,6 +15,7 @@
         <Compile Include="Utils.fs" />
         <Compile Include="Api.fs" />
         <Compile Include="Stage.fs" />
+        <Compile Include="Gui.fs" />
         <Compile Include="App.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
@@ -27,6 +28,7 @@
         <PackageReference Include="Fable.SignalR" Version="0.11.2" />
         <PackageReference Include="Fable.SignalR.Feliz" Version="0.11.2" />
         <PackageReference Include="Feliz" Version="1.32.0" />
+        <PackageReference Include="Feliz.Bulma" Version="2.11.0" />
         <PackageReference Include="Feliz.ElmishComponents" Version="1.2.0" />
         <PackageReference Include="Feliz.Router" Version="3.5.0" />
         <PackageReference Include="Feliz.UseDeferred" Version="1.4.0" />
