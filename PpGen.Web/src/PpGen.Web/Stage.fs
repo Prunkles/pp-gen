@@ -279,10 +279,38 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
     do canvas.classList.add("stage-canvas")
     
     let scene = THREE.Scene.Create()
+    do
+        scene.add(THREE.AmbientLight.Create(!^(float 0x222222), 1.)) |> ignore
+        scene.add(THREE.DirectionalLight.Create(!^(float 0xffffff), 1.)) |> ignore
     
     let renderer = THREE.WebGLRenderer.Create(!!{| canvas = Some (U2.Case1 canvas) |})
     do
-        renderer.setClearColor(!^"#061639")
+        renderer.toneMapping <- THREE.ACESFilmicToneMapping
+        renderer.toneMappingExposure <- 1.0
+    
+    let sky = SkyExports.Sky.Sky.Create()
+    do
+        sky.scale.setScalar(450000.) |> ignore
+        let sun = THREE.Vector3.Create(1., 0.5, 0.)
+        let effectController =
+            {|
+                turbidity = 10.
+                rayleigh = 2.
+                mieCoefficient = 0.005
+                mieDirectionalG = 0.8
+                inclination = 0.49 // elevation / inclination
+                azimuth = 0.25 // Facing front
+            |}
+        let uniforms = sky.material.uniforms
+        let inline setUniformValue name value = uniforms.[name].value <- Some !!value
+        setUniformValue "sunPosition" sun
+        setUniformValue "turbidity" effectController.turbidity
+        setUniformValue "rayleigh" effectController.rayleigh
+        setUniformValue "mieCoefficient" effectController.mieCoefficient
+        setUniformValue "mieDirectionalG" effectController.mieDirectionalG
+        setUniformValue "sunPosition" (THREE.Vector3.Create(400000., 400000., 400000.))
+        
+        scene.add(sky) |> ignore
     
     let camera =
         let aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight

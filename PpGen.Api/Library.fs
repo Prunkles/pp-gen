@@ -18,3 +18,5 @@ module Fabrics =
         abstract Create: seed: uint64 * size: byte -> IHeightmapGenerator
         abstract CreateInterpolated: seed: uint64 * size: byte -> IHeightmapGenerator
     
+    type IPerlinNoiseHeightmapGeneratorFabric =
+        abstract Create: seed: uint64 * chunkSize: int -> IHeightmapGenerator
