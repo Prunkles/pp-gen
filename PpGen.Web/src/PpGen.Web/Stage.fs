@@ -34,15 +34,11 @@ type IHeightmapRenderer =
 
 type Stage(canvas: HTMLCanvasElement) =
     
-//    let width, height = 1024., 720.
-    
     let scene = THREE.Scene.Create()
     
     let renderer = THREE.WebGLRenderer.Create(!!{| canvas = canvas |})
     do
-//        renderer.setSize(1024., 720.)
         renderer.setClearColor(!^"#061639")
-//        renderer.sortObjects <- true
     
     let camera =
         let aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight
@@ -77,6 +73,10 @@ type Stage(canvas: HTMLCanvasElement) =
         renderer.render(scene, camera)
     
     member _.DomElement = renderer.domElement
+    
+    interface IDisposable with
+        member this.Dispose() =
+            controls.dispose()
     
 
 
@@ -262,29 +262,23 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
 
     let mutable chunkSelectionCoords = Unchecked.defaultof<_>
     
-    let mouse = THREE.Vector2.Create()
-    do 
-        window.addEventListener(
-            "mousemove",
-            !!(fun (event: MouseEvent) ->
-                let rect = stage.Renderer.domElement.getBoundingClientRect()
-                let mxs, mys =
-                    (event.clientX - rect?x) / rect.width * 2. - 1.,
-                    (event.clientY - rect?y) / rect.height * 2. - 1. |> (~-)
-                mouse.set(mxs, mys) |> ignore
-            )
-        )
-        
-        document.addEventListener(
-            "keydown",
-            !!(fun (event: KeyboardEvent) ->
-                // printfn "Listened key: %A" event.key
-                if event.key = "g" then onGenerateChunk chunkSelectionCoords
-            )
-        )
+    let mousePos = THREE.Vector2.Create()
+
+    let onMouseMove (event: MouseEvent) =
+        let rect = stage.Renderer.domElement.getBoundingClientRect()
+        let mxs, mys =
+            (event.clientX - rect?x) / rect.width * 2. - 1.,
+            (event.clientY - rect?y) / rect.height * 2. - 1. |> (~-)
+        mousePos.set(mxs, mys) |> ignore
+    do window.addEventListener("mousemove", !!onMouseMove )
+
+    let onKeyDown (event: KeyboardEvent) =
+        if event.key = "g" then onGenerateChunk chunkSelectionCoords
+    do document.addEventListener("keydown",!!onKeyDown)
     
     let raycaster = THREE.Raycaster.Create()
     
+    let planeX0Z = THREE.Plane.Create(THREE.Vector3.Create(0., 1., 0.), 0.)
     
     member _.Move(cx, cy) =
         chunkSelectionCoords <- (cx, cy)
@@ -294,31 +288,32 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
         chunkSelection.position.set(x, 0., z) |> ignore
     
     member this.Render(camera) =
-        raycaster.setFromCamera(!!mouse, camera)
+        raycaster.setFromCamera(!!mousePos, camera)
         let ray = raycaster.ray
-        let planeXZ = THREE.Plane.Create(THREE.Vector3.Create(0., 1., 0.), 0.)
-        let intersection = ray.intersectPlane(planeXZ, THREE.Vector3.Create())
+        let intersection = ray.intersectPlane(planeX0Z, THREE.Vector3.Create())
         match intersection with
         | Some point ->
             let x, z = point.x, point.z
             let cx, cy = x /! float cs |> int, z /! float cs |> int
             this.Move(cx, cy)
         | None -> ()
-        ()
     
     member _.Visible
         with get() = chunkSelection.visible
         and set(value) = chunkSelection.visible <- value
     
     interface IDisposable with
-        member _.Dispose() = resources |> Seq.iter ^fun r -> r?dispose()
+        member _.Dispose() =
+            resources |> Seq.iter ^fun r -> r?dispose()
+            document.removeEventListener("keydown", !!onKeyDown)
+            window.removeEventListener("mousemove", !!onMouseMove)
 
 
 let configureStage cs (chunks: IObservable<int * int * Chunk>) palette onGenerateChunk =
     let canvas = document.createElement("canvas") :?> HTMLCanvasElement
     canvas.classList.add("stage-canvas")
     
-    let stage = Stage(canvas)
+    let stage = new Stage(canvas)
     let heightmapRenderer = new ThreeHeightmapRenderer(stage, palette, 1000)
     let subscription =
         chunks
@@ -343,5 +338,6 @@ let configureStage cs (chunks: IObservable<int * int * Chunk>) palette onGenerat
         subscription
         heightmapRenderer
         chunkSelection
+        stage
         Disposable.create ^fun () -> printfn "Stage disposed"
     ], stage.DomElement
