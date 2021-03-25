@@ -10,6 +10,7 @@ open Feliz.Bulma
 open PpGen.Api
 open PpGen.Api.Fabrics
 open PpGen.Web.Api
+open PpGen.Web.Stage
 open PpGen.Web.Utils
 open PpGen.Web.Gui
 
@@ -18,11 +19,12 @@ open PpGen.Web.Gui
 let Stage (cs: int) (chunks: IObservable<int * int * Chunk>) palette (onGenerateChunk: (int * int) -> unit) =
     let ref = React.useRef(None: HTMLElement option)
     React.useEffect(fun () ->
-        let disposable, domElement = Stage.configureStage cs chunks palette onGenerateChunk
-        ref.current.Value.appendChild(domElement) |> ignore
+        let stage = new Stage(cs, chunks, palette, onGenerateChunk)
+        stage.StartAnimate()
+        ref.current.Value.appendChild(stage.DomElement) |> ignore
         Disposable.concat [
-            disposable
-            Disposable.create ^fun () -> ref.current.Value.removeChild(domElement) |> ignore
+            stage
+            Disposable.create ^fun () -> ref.current.Value.removeChild(stage.DomElement) |> ignore
         ]
     , [| box cs; box palette; box onGenerateChunk; box chunks |])
     

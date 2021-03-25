@@ -32,60 +32,11 @@ type IHeightmapRenderer =
     abstract RenderRect: x: int * y: int * w: int * h: int * heights: float[] -> unit
 
 
-type Stage(canvas: HTMLCanvasElement) =
-    
-    let scene = THREE.Scene.Create()
-    
-    let renderer = THREE.WebGLRenderer.Create(!!{| canvas = canvas |})
-    do
-        renderer.setClearColor(!^"#061639")
-    
-    let camera =
-        let aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight
-        THREE.PerspectiveCamera.Create(90., aspect, 1., 10000.)
-    do camera.position.set(0., 500., 0.) |> ignore
-    
-    let controls = OrbitControls(camera, renderer.domElement)
-    do
-        controls.enableDamping <- true
-        controls.dampingFactor <- 0.05
-        controls.maxPolarAngle <- Math.PI / 2.1
-        controls.screenSpacePanning <- false
-    
-    let resizeRendererToDisplaySize (renderer: Renderer) =
-        let canvas = renderer.domElement
-        let width, height = canvas.clientWidth, canvas.clientHeight
-        let needResize = canvas.width <> width || canvas.height <> height
-        if needResize then
-            renderer.setSize(width, height, false)
-        needResize
-    
-    member _.Scene = scene
-    member _.Renderer = renderer
-    member _.Camera = camera
-    
-    member _.Render() =
-        if (resizeRendererToDisplaySize renderer) then
-            let canvas = renderer.domElement
-            camera.aspect <- canvas.clientWidth / canvas.clientHeight
-            camera.updateProjectionMatrix()
-        controls.update()
-        renderer.render(scene, camera)
-    
-    member _.DomElement = renderer.domElement
-    
-    interface IDisposable with
-        member this.Dispose() =
-            controls.dispose()
-            renderer.dispose()
-    
-
-
 type Region =
     { CanvasContext: CanvasRenderingContext2D
       Mesh: Mesh<PlaneGeometry, MeshBasicMaterial> }
 
-type ThreeHeightmapRenderer(stage: Stage, palette, regionSize) =
+type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
     let resources = ResizeArray<obj>()
     
     let regions: IDictionary<int * int, Region> = upcast Dictionary()
@@ -116,7 +67,7 @@ type ThreeHeightmapRenderer(stage: Stage, palette, regionSize) =
             
             let region = { CanvasContext = ctx; Mesh = mesh }
             regions.[(rx, ry)] <- region
-            stage.Scene.add(!![| mesh |]) |> ignore
+            scene.add(!![| mesh |]) |> ignore
             resources.AddRange([canvasTexture; material; planeGeometry])
             
             region
@@ -164,7 +115,7 @@ type ThreeHeightmapRenderer(stage: Stage, palette, regionSize) =
         member _.Dispose() =
             resources |> Seq.iter ^fun r -> r?dispose()
             let objects = regions.Values |> Seq.map ^fun r -> r.Mesh
-            stage.Scene.remove(!!objects) |> ignore
+            scene.remove(!!objects) |> ignore
     
 
 
@@ -244,7 +195,7 @@ type ThreeHeightmapRenderer(stage: Stage, palette, regionSize) =
 
 
 
-type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
+type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
     let resources = ResizeArray<obj>()
     
     let chunkSelection =
@@ -259,14 +210,14 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
         resources.AddRange([planeGeometry; edgeGeometry; material])
         mesh
     
-    do stage.Scene.add(!![|chunkSelection|]) |> ignore
+    do scene.add(!![|chunkSelection|]) |> ignore
 
     let mutable chunkSelectionCoords = Unchecked.defaultof<_>
     
     let mousePos = THREE.Vector2.Create()
 
     let onMouseMove (event: MouseEvent) =
-        let rect = stage.Renderer.domElement.getBoundingClientRect()
+        let rect = renderer.domElement.getBoundingClientRect()
         let mxs, mys =
             (event.clientX - rect?x) / rect.width * 2. - 1.,
             (event.clientY - rect?y) / rect.height * 2. - 1. |> (~-)
@@ -314,12 +265,43 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
             printfn "ChunkSelection disposed"
 
 
-let configureStage cs (chunks: IObservable<int * int * Chunk>) palette onGenerateChunk =
-    let canvas = document.createElement("canvas") :?> HTMLCanvasElement
-    canvas.classList.add("stage-canvas")
+
+
+type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk) =
     
-    let stage = new Stage(canvas)
-    let heightmapRenderer = new ThreeHeightmapRenderer(stage, palette, 1000)
+    let canvas = document.createElement("canvas") :?> HTMLCanvasElement
+    do canvas.classList.add("stage-canvas")
+    
+    let scene = THREE.Scene.Create()
+    
+    let renderer = THREE.WebGLRenderer.Create(!!{| canvas = canvas |})
+    do
+        renderer.setClearColor(!^"#061639")
+    
+    let camera =
+        let aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight
+        THREE.PerspectiveCamera.Create(90., aspect, 1., 10000.)
+    do camera.position.set(0., 500., 0.) |> ignore
+    
+    let controls = OrbitControls(camera, renderer.domElement)
+    do
+        controls.enableDamping <- true
+        controls.dampingFactor <- 0.05
+        controls.maxPolarAngle <- Math.PI / 2.1
+        controls.screenSpacePanning <- false
+    
+    let resizeRendererToDisplaySize (renderer: Renderer) =
+        let canvas = renderer.domElement
+        let width, height = canvas.clientWidth, canvas.clientHeight
+        let needResize = canvas.width <> width || canvas.height <> height
+        if needResize then
+            renderer.setSize(width, height, false)
+        needResize
+    
+    // ---
+    
+    let heightmapRenderer = new ThreeHeightmapRenderer(scene, palette, 1000)
+    
     let subscription =
         chunks
         |> fun x -> !!x : IRxObservable<int * int * Chunk>
@@ -328,21 +310,41 @@ let configureStage cs (chunks: IObservable<int * int * Chunk>) palette onGenerat
             (heightmapRenderer :> IHeightmapRenderer).RenderRect(x, y, chunk.Width, chunk.Height, chunk.Heights)
         )
     
-    let chunkSelection = new ChunkSelection(stage, cs, onGenerateChunk)
+    let chunkSelection = new ChunkSelection(scene, renderer, cs, onGenerateChunk)
     
-    let render time =
-        chunkSelection.Render(stage.Camera)
-        stage.Render()
+    // ---
     
-    let rec animate time =
-        render time
-        window.requestAnimationFrame(animate) |> ignore
-    window.requestAnimationFrame(animate) |> ignore
+    member _.Scene = scene
+    member _.Renderer = renderer
+    member _.Camera = camera
     
-    Disposable.concat [
-        subscription
-        heightmapRenderer
-        chunkSelection
-        stage
-        Disposable.create ^fun () -> printfn "Stage disposed"
-    ], stage.DomElement
+    member _.Render() =
+        chunkSelection.Render(camera)
+        if (resizeRendererToDisplaySize renderer) then
+            let canvas = renderer.domElement
+            camera.aspect <- canvas.clientWidth / canvas.clientHeight
+            camera.updateProjectionMatrix()
+        controls.update()
+        renderer.render(scene, camera)
+    
+    member this.Animate(time) =
+        this.Render()
+        window.requestAnimationFrame(this.Animate) |> ignore
+    
+    member this.StartAnimate() =
+        window.requestAnimationFrame(this.Animate) |> ignore
+    
+    member _.DomElement = renderer.domElement
+    
+    interface IDisposable with
+        member this.Dispose() =
+            let disp = Disposable.concat [
+                subscription
+                heightmapRenderer
+                chunkSelection
+            ]
+            disp.Dispose()
+            controls.dispose()
+            renderer.dispose()
+            printfn "Stage disposed"
+
