@@ -1,0 +1,15 @@
+{
+  "name": "fable.import.rxjs.playground",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "build": "dotnet fable src/Fable.Import.RxJS.Playground/ -o build/",
+    "build-watch": "dotnet fable watch src/Fable.Import.RxJS.Playground/ -o build/"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "rxjs": "^6.6.3"
+  }
+}
