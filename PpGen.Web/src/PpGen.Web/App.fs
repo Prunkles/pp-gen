@@ -58,14 +58,13 @@ let App () =
             fun (cx, cy) ->
                 async {
                     let! chunks = heightmapGenerator.GenerateChunk(cx, cy)
-                    
-                    let subscription =
-                        chunks.Subscribe(Observer.create
+                    // Используем костыль автоотписки максимально на скорую руку
+                    let mutable sub = Unchecked.defaultof<_>
+                    sub <- chunks.Subscribe(Observer.create
                             (fun chunk -> chunkSubject.next((cx, cy, chunk)))
                             (fun err -> chunkSubject.error(err))
-                            (fun () -> printfn $"Chunk ({cx}, {cy})C completed")
+                            (fun () -> printfn $"Chunk ({cx}, {cy})C completed"; (sub :> IDisposable).Dispose())
                         )
-                    ignore subscription
                     printfn $"Request chunk generation at ({cx}, {cy})C"
                 } |> Async.StartImmediate
             , [| box heightmapGenerator; box chunkSubject |]
@@ -74,6 +73,7 @@ let App () =
     React.useEffect(fun () ->
         generateChunk (1, 1)
     , [| box guiProps |])
+    
     
     Html.div [
         Bulma.columns [
@@ -86,7 +86,8 @@ let App () =
                     match algorithm with
                     | AlgorithmProps.DiamondSquare algorithm ->
                         let cs = pown 2 algorithm.Size
-                        Stage cs chunkSubject palette generateChunk
+                        let stage = Stage cs chunkSubject palette generateChunk
+                        stage
                     | AlgorithmProps.PerlinNoise algorithm ->
                         invalidOp "Unsupported"
                 ]

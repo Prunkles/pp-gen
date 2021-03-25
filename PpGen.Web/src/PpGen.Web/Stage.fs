@@ -13,6 +13,9 @@ open Fable.Import.ThreeJs.Exports
 
 open Fable.Import.ThreeJs.Types.__geometries_PlaneGeometry
 open Fable.Import.ThreeJs.Types.__helpers_HemisphereLightHelper
+open Fable.Import.ThreeJs.Types.__helpers_PlaneHelper
+open Fable.Import.ThreeJs.Types.__math_Plane
+open Fable.Import.ThreeJs.Types.__math_Ray
 open Fable.Import.ThreeJs.Types.__objects_Mesh
 open Fable.Import.ThreeJs.Types.__renderers_WebGLRenderer
 open Fable.Import.ThreeJs.Types.__helpers_GridHelper
@@ -275,11 +278,13 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
         document.addEventListener(
             "keydown",
             !!(fun (event: KeyboardEvent) ->
+                // printfn "Listened key: %A" event.key
                 if event.key = "g" then onGenerateChunk chunkSelectionCoords
             )
         )
     
     let raycaster = THREE.Raycaster.Create()
+    
     
     member _.Move(cx, cy) =
         chunkSelectionCoords <- (cx, cy)
@@ -290,12 +295,15 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
     
     member this.Render(camera) =
         raycaster.setFromCamera(!!mouse, camera)
-        let intersections = raycaster.intersectObjects(stage.Scene.children)
-        intersections
-        |> Seq.iter ^fun intersection ->
-            let x, z = intersection.point.x, intersection.point.z
+        let ray = raycaster.ray
+        let planeXZ = THREE.Plane.Create(THREE.Vector3.Create(0., 1., 0.), 0.)
+        let intersection = ray.intersectPlane(planeXZ, THREE.Vector3.Create())
+        match intersection with
+        | Some point ->
+            let x, z = point.x, point.z
             let cx, cy = x /! float cs |> int, z /! float cs |> int
             this.Move(cx, cy)
+        | None -> ()
         ()
     
     member _.Visible
