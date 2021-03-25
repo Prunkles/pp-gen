@@ -11,11 +11,15 @@ open Fable.Import.RxJS
 open Fable.Import.ThreeJs.Examples.Jsm.Controls
 open Fable.Import.ThreeJs.Exports
 
+open Fable.Import.ThreeJs.Types.__core_Object3D
+open Fable.Import.ThreeJs.Types.__geometries_EdgesGeometry
 open Fable.Import.ThreeJs.Types.__geometries_PlaneGeometry
 open Fable.Import.ThreeJs.Types.__helpers_HemisphereLightHelper
 open Fable.Import.ThreeJs.Types.__helpers_PlaneHelper
+open Fable.Import.ThreeJs.Types.__materials_LineBasicMaterial
 open Fable.Import.ThreeJs.Types.__math_Plane
 open Fable.Import.ThreeJs.Types.__math_Ray
+open Fable.Import.ThreeJs.Types.__objects_LineSegments
 open Fable.Import.ThreeJs.Types.__objects_Mesh
 open Fable.Import.ThreeJs.Types.__renderers_WebGLRenderer
 open Fable.Import.ThreeJs.Types.__helpers_GridHelper
@@ -37,7 +41,7 @@ type Region =
       Mesh: Mesh<PlaneGeometry, MeshBasicMaterial> }
 
 type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
-    let resources = ResizeArray<obj>()
+    let resources = ResizeArray<IThreeDisposable>()
     
     let regions: IDictionary<int * int, Region> = upcast Dictionary()
     
@@ -67,8 +71,8 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
             
             let region = { CanvasContext = ctx; Mesh = mesh }
             regions.[(rx, ry)] <- region
-            scene.add(!![| mesh |]) |> ignore
-            resources.AddRange([canvasTexture; material; planeGeometry])
+            scene.add(mesh) |> ignore
+            resources.AddRange([!!canvasTexture; !!material; !!planeGeometry])
             
             region
         
@@ -113,9 +117,9 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
     
     interface IDisposable with
         member _.Dispose() =
-            resources |> Seq.iter ^fun r -> r?dispose()
-            let objects = regions.Values |> Seq.map ^fun r -> r.Mesh
-            scene.remove(!!objects) |> ignore
+            resources |> Seq.iter ^fun r -> r.dispose()
+            let objects = regions.Values |> Seq.map (fun r -> r.Mesh) |> Seq.toArray
+            scene.remove(objects) |> ignore
     
 
 
@@ -151,7 +155,7 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
 //            
 //            let region = { CanvasContext = ctx; Mesh = mesh }
 //            regions.[(rx, ry)] <- region
-//            stage.Scene.add(!![| mesh |]) |> ignore
+//            stage.Scene.add(mesh) |> ignore
 //            resources.AddRange([canvasTexture; material; planeGeometry])
 //            
 //            region
@@ -196,7 +200,7 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
 
 
 type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
-    let resources = ResizeArray<obj>()
+    let resources = ResizeArray<IThreeDisposable>()
     
     let chunkSelection =
         let material = THREE.LineBasicMaterial.Create()
@@ -207,10 +211,12 @@ type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
         let mesh = THREE.LineSegments.Create(edgeGeometry, material)
         mesh.renderOrder <- 1000.
         mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
-        resources.AddRange([planeGeometry; edgeGeometry; material])
+        
+        resources.AddRange([!!planeGeometry; !!edgeGeometry; !!material])
         mesh
     
-    do scene.add(!![|chunkSelection|]) |> ignore
+    do scene.add(chunkSelection) |> ignore
+    
 
     let mutable chunkSelectionCoords = Unchecked.defaultof<_>
     
@@ -259,7 +265,7 @@ type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
     
     interface IDisposable with
         member _.Dispose() =
-            resources |> Seq.iter ^fun r -> r?dispose()
+            resources |> Seq.iter ^fun r -> r.dispose()
             document.removeEventListener("keydown", !!onKeyDown)
             document.removeEventListener("mousemove", !!onMouseMove)
             printfn "ChunkSelection disposed"
@@ -274,7 +280,7 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
     
     let scene = THREE.Scene.Create()
     
-    let renderer = THREE.WebGLRenderer.Create(!!{| canvas = canvas |})
+    let renderer = THREE.WebGLRenderer.Create(!!{| canvas = Some (U2.Case1 canvas) |})
     do
         renderer.setClearColor(!^"#061639")
     
@@ -314,10 +320,6 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
     
     // ---
     
-    member _.Scene = scene
-    member _.Renderer = renderer
-    member _.Camera = camera
-    
     member _.Render() =
         chunkSelection.Render(camera)
         if (resizeRendererToDisplaySize renderer) then
@@ -338,12 +340,11 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
     
     interface IDisposable with
         member this.Dispose() =
-            let disp = Disposable.concat [
+            (Disposable.concat [
                 subscription
                 heightmapRenderer
                 chunkSelection
-            ]
-            disp.Dispose()
+            ]).Dispose()
             controls.dispose()
             renderer.dispose()
             printfn "Stage disposed"

@@ -1783,9 +1783,9 @@ module __core_Object3D =
         /// <param name="vector">A world vector to look at.</param>
         abstract lookAt: vector: U2<Vector3, float> * ?y: float * ?z: float -> unit
         /// Adds object as child of this object.
-        abstract add: [<ParamArray>] ``object``: ResizeArray<Object3D> -> Object3D
+        abstract add: [<ParamArray>] ``object``: #Object3D[] -> Object3D
         /// Removes object as child of this object.
-        abstract remove: [<ParamArray>] ``object``: ResizeArray<Object3D> -> Object3D
+        abstract remove: [<ParamArray>] ``object``: #Object3D[] -> Object3D
         /// Removes all child objects.
         abstract clear: unit -> Object3D
         /// Adds object as a child of this, while maintaining the object's world transform.

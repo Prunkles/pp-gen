@@ -82,3 +82,6 @@ module Disposable =
     
     let concat (disposables: IDisposable seq) =
         create (fun () -> disposables |> Seq.iter (fun d -> d.Dispose()))
+
+type IThreeDisposable =
+    abstract dispose: unit -> unit
