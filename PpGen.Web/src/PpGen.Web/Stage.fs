@@ -77,6 +77,7 @@ type Stage(canvas: HTMLCanvasElement) =
     interface IDisposable with
         member this.Dispose() =
             controls.dispose()
+            renderer.dispose()
     
 
 
