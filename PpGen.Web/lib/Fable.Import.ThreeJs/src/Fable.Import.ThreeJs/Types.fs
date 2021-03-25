@@ -1781,7 +1781,8 @@ module __core_Object3D =
         abstract worldToLocal: vector: Vector3 -> Vector3
         /// <summary>Rotates object to face point in space.</summary>
         /// <param name="vector">A world vector to look at.</param>
-        abstract lookAt: vector: U2<Vector3, float> * ?y: float * ?z: float -> unit
+        abstract lookAt: vector: Vector3 -> unit
+        abstract lookAt: x: float * y: float * z: float -> unit
         /// Adds object as child of this object.
         abstract add: [<ParamArray>] ``object``: #Object3D[] -> Object3D
         /// Removes object as child of this object.
