@@ -24,7 +24,7 @@ type GuiProps =
     { Seed: uint64
       Palette: Palette
       Algorithm: AlgorithmProps }
-    static member Default = { Seed = 0UL; Palette = Palettes.lefebrve2; Algorithm = AlgorithmProps.DiamondSquare DiamondSquareProps.Default }
+    static member Default = { Seed = 9853101159151UL; Palette = Palettes.lefebrve2; Algorithm = AlgorithmProps.DiamondSquare DiamondSquareProps.Default }
 
 [<ReactComponent>]
 let Gui initial onChanged =
