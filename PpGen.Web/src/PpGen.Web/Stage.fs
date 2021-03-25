@@ -55,7 +55,7 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
             canvasTexture.magFilter <- THREE.NearestFilter
             let material = THREE.MeshBasicMaterial.Create()
             material.map <- Some !!canvasTexture
-//            material.transparent <- true
+            material.alphaTest <- 1.
             let planeGeometry = THREE.PlaneGeometry.Create(float regionSize, float regionSize)
             let mesh = THREE.Mesh.Create(planeGeometry, material)
             mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
@@ -205,18 +205,17 @@ type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
     let chunkSelection =
         let material = THREE.LineBasicMaterial.Create()
         material.color <- THREE.Color.Create(!^"#00F")
-        material.depthTest <- false
         let planeGeometry = THREE.PlaneGeometry.Create(float cs + 1., float cs + 1.)
         let edgeGeometry = THREE.EdgesGeometry.Create(planeGeometry)
         let mesh = THREE.LineSegments.Create(edgeGeometry, material)
         mesh.renderOrder <- 1000.
+        mesh.onBeforeRender <- fun renderer _ _ _ _ _ -> renderer.clearDepth()
         mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
         
         resources.AddRange([!!planeGeometry; !!edgeGeometry; !!material])
         mesh
     
     do scene.add(chunkSelection) |> ignore
-    
 
     let mutable chunkSelectionCoords = Unchecked.defaultof<_>
     
@@ -248,7 +247,7 @@ type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
             float cy * float cs + float cs / 2. + 0.5
         chunkSelection.position.set(x, 0., z) |> ignore
     
-    member this.Render(camera) =
+    member this.Update(camera) =
         raycaster.setFromCamera(!!mousePos, camera)
         let ray = raycaster.ray
         let intersection = ray.intersectPlane(planeX0Z, THREE.Vector3.Create())
@@ -269,8 +268,6 @@ type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
             document.removeEventListener("keydown", !!onKeyDown)
             document.removeEventListener("mousemove", !!onMouseMove)
             printfn "ChunkSelection disposed"
-
-
 
 
 type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk) =
@@ -349,7 +346,7 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
     // ---
     
     member _.Render() =
-        chunkSelection.Render(camera)
+        chunkSelection.Update(camera)
         if (resizeRendererToDisplaySize renderer) then
             let canvas = renderer.domElement
             camera.aspect <- canvas.clientWidth / canvas.clientHeight
