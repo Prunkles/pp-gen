@@ -95,7 +95,7 @@ let Gui initial onChanged =
         match algorithm with
         | AlgorithmProps.DiamondSquare algorithm ->
             Bulma.field.div [
-                Bulma.label [ prop.text "Size" ]
+                Bulma.label [ prop.text "Size (2^n+1)" ]
                 Bulma.control.div [
                     Bulma.input.number [
                         prop.value (string algorithm.Size)
