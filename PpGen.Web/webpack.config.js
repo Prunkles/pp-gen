@@ -67,11 +67,12 @@ module.exports = {
         }),
     ],
     
-    resolve: {
-        fallback: {
-            path: false,
-        },
-    },
+    resolve: { },
+//    resolve: {
+//        fallback: {
+////            path: false,
+//        },
+//    },
     
     devServer: {
         publicPath: '/',
