@@ -271,22 +271,14 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
             (event.clientX - rect?x) / rect.width * 2. - 1.,
             (event.clientY - rect?y) / rect.height * 2. - 1. |> (~-)
         mousePos.set(mxs, mys) |> ignore
-    do
-        emitJsExpr (onMouseMove) """
-            const $onMouseMove = $0;
-            this._onMouseMove = $onMouseMove;
-            window.addEventListener("mousemove", this._onMouseMove);
-        """
+    let onMouseMove = onMouseMove
+    do window.addEventListener("mousemove", !!onMouseMove)
 
     let onKeyDown (event: KeyboardEvent) =
         if event.key = "g" then
             onGenerateChunk chunkSelectionCoords
-    do
-        emitJsExpr (onKeyDown) """
-            const $onKeyDown = $0;
-            this._onKeyDown = $onKeyDown;
-            document.addEventListener("keydown", this._onKeyDown);
-        """
+    let onKeyDown = onKeyDown
+    do document.addEventListener("keydown", !!onKeyDown)
     
     let raycaster = THREE.Raycaster.Create()
     
@@ -317,10 +309,8 @@ type ChunkSelection(stage: Stage, cs, onGenerateChunk) =
     interface IDisposable with
         member _.Dispose() =
             resources |> Seq.iter ^fun r -> r?dispose()
-            emitJsExpr () """
-                document.removeEventListener("keydown", this._onKeyDown)
-                window.removeEventListener("mousemove", this._onMouseMove)
-            """
+            document.removeEventListener("keydown", !!onKeyDown)
+            document.removeEventListener("mousemove", !!onMouseMove)
             printfn "ChunkSelection disposed"
 
 
