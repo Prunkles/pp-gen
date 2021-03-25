@@ -33,7 +33,7 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fable.Import.StatsJs", "PpG
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fable.Import.DatGui", "PpGen.Web\lib\Fable.Import.DatGui\src\Fable.Import.DatGui\Fable.Import.DatGui.fsproj", "{504EF1A6-B3B1-4D35-A057-1D3BCDF67818}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fable.Import.RxJS", "..\Fable.Import.RxJS\src\Fable.Import.RxJS\Fable.Import.RxJS.fsproj", "{F2429A58-6868-4031-A0CA-D6CC1F493CED}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fable.Import.RxJS", "PpGen.Web\lib\Fable.Import.RxJS\src\Fable.Import.RxJS\Fable.Import.RxJS.fsproj", "{F2429A58-6868-4031-A0CA-D6CC1F493CED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
