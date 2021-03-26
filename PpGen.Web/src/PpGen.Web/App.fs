@@ -17,17 +17,17 @@ open PpGen.Web.Gui
 
 
 [<ReactComponent>]
-let Stage (cs: int) (chunks: IObservable<int * int * Chunk>) palette (onGenerateChunk: (int * int) -> unit) =
+let Stage (cs: int) (chunks: IObservable<int * int * Chunk>) palette (onGenerateChunk: (int * int) -> unit) use3D =
     let ref = React.useRef(None: HTMLElement option)
     React.useEffect(fun () ->
-        let stage = new Stage(cs, chunks, palette, onGenerateChunk)
+        let stage = new Stage(cs, chunks, palette, onGenerateChunk, use3D)
         stage.StartAnimate()
         ref.current.Value.appendChild(stage.DomElement) |> ignore
         Disposable.concat [
             stage
             Disposable.create ^fun () -> ref.current.Value.removeChild(stage.DomElement) |> ignore
         ]
-    , [| box cs; box palette; box onGenerateChunk; box chunks |])
+    , [| box cs; box palette; box onGenerateChunk; box chunks; box use3D |])
     
     Html.div [
         prop.id "stage"
@@ -41,6 +41,7 @@ let App () =
     let seed = guiProps.Seed
     let palette = guiProps.Palette
     let algorithm = guiProps.Algorithm
+    let use3D = guiProps.Use3D
     
     let heightmapGenerator =
         React.useMemo(
@@ -68,13 +69,13 @@ let App () =
             fun (cx, cy) ->
                 async {
                     let! chunks = heightmapGenerator.GenerateChunk(cx, cy)
-                    // Используем костыль автоотписки максимально на скорую руку
-                    let mutable sub = Unchecked.defaultof<_>
-                    sub <- chunks.Subscribe(Observer.create
+                    let sub =
+                        chunks.Subscribe(Observer.create
                             (fun chunk -> chunkSubject.next((cx, cy, chunk)))
                             (fun err -> chunkSubject.error(err))
-                            (fun () -> printfn $"Chunk ({cx}, {cy})C completed"; (sub :> IDisposable).Dispose())
+                            (fun () -> printfn $"Chunk ({cx}, {cy})C completed")
                         )
+                    ignore sub
                     printfn $"Request chunk generation at ({cx}, {cy})C"
                 } |> Async.StartImmediate
             , [| box heightmapGenerator; box chunkSubject |]
@@ -96,11 +97,11 @@ let App () =
                     match algorithm with
                     | AlgorithmProps.DiamondSquare algorithm ->
                         let cs = pown 2 algorithm.Size
-                        let stage = Stage cs chunkSubject palette generateChunk
+                        let stage = Stage cs chunkSubject palette generateChunk use3D
                         stage
                     | AlgorithmProps.PerlinNoise props ->
                         let cs = props.Size
-                        let stage = Stage cs chunkSubject palette generateChunk
+                        let stage = Stage cs chunkSubject palette generateChunk use3D
                         stage
                 ]
             ]

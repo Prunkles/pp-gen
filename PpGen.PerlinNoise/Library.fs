@@ -5,28 +5,31 @@ open System
 
 module Perlin =
     
-    [<Struct>]
-    type Vector2(x: float, y: float) =
-        member _.X = x
-        member _.Y = y
-    
-    let dot (a: Vector2) (b: Vector2) : float =
-        a.X * b.X + a.Y * b.Y
-    
-    let lerp a b t : float =
-        a + (b - a) * t
-    
-    let qunticCurve t =
-        t * t * t * (t * (t * 6. - 15.) + 10.)
-    
-    let randomVector x y (seed: uint64) =
-        let hash = HashCode.Combine(x, y, (int)seed, 641374891)
-        match abs hash % 4 with
-        | 0 -> Vector2( 1.,  0.)
-        | 1 -> Vector2( 0.,  1.)
-        | 2 -> Vector2(-1.,  0.)
-        | 3 -> Vector2( 0., -1.)
-        | _ -> invalidOp "ops"
+    [<AutoOpen>]
+    module private Helpers =
+        
+        [<Struct>]
+        type Vector2(x: float, y: float) =
+            member _.X = x
+            member _.Y = y
+        
+        let dot (a: Vector2) (b: Vector2) : float =
+            a.X * b.X + a.Y * b.Y
+        
+        let lerp a b t : float =
+            a + (b - a) * t
+        
+        let qunticCurve t =
+            t * t * t * (t * (t * 6. - 15.) + 10.)
+        
+        let randomVector x y (seed: uint64) =
+            let hash = HashCode.Combine(x, y, (int)seed, 641374891)
+            match abs hash % 4 with
+            | 0 -> Vector2( 1.,  0.)
+            | 1 -> Vector2( 0.,  1.)
+            | 2 -> Vector2(-1.,  0.)
+            | 3 -> Vector2( 0., -1.)
+            | _ -> invalidOp "ops"
     
     let noise (x: float) (y: float) (seed: uint64) =
         let left = floor x |> int

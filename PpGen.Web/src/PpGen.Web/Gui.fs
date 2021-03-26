@@ -1,11 +1,11 @@
 module PpGen.Web.Gui
 
 open System
-open Fable.Import.DatGui.Exports
 open Feliz
 open Feliz.Bulma
 open PpGen
 open PpGen.Utils
+
 
 type DiamondSquareProps =
     { Size: int }
@@ -23,13 +23,17 @@ type AlgorithmProps =
 type GuiProps =
     { Seed: uint64
       Palette: Palette
+      Use3D: bool
       Algorithm: AlgorithmProps }
-    static member Default = { Seed = 9853101159151UL; Palette = Palettes.lefebrve2; Algorithm = AlgorithmProps.DiamondSquare DiamondSquareProps.Default }
+    static member Default =
+        { Seed = 9853101159151UL; Palette = Palettes.lefebrve2; Use3D = false
+          Algorithm = AlgorithmProps.DiamondSquare DiamondSquareProps.Default }
 
 [<ReactComponent>]
 let Gui initial onChanged =
     let properties, setProperties = React.useState(fun () -> initial)
     let seed, setSeed = properties.Seed, fun seed -> setProperties { properties with Seed = seed }
+    let setUse3D = fun x -> setProperties { properties with Use3D = x }
     let palette, setPalette = properties.Palette, fun palette -> setProperties { properties with Palette = palette }
     let algorithm, setAlgorithm = properties.Algorithm, fun alg -> setProperties { properties with Algorithm = alg }
     
@@ -64,6 +68,19 @@ let Gui initial onChanged =
                         ]
                     ]
                 ]
+            ]
+        ]
+        
+        Bulma.field.div [
+            Checkradio.checkbox [
+                prop.id "param-use3d"
+                prop.name "param-use3d"
+                color.isDanger
+                prop.onChange (fun (value: bool) -> setUse3D value)
+            ]
+            Html.label [
+                prop.htmlFor "param-use3d"
+                prop.text "3D"
             ]
         ]
         

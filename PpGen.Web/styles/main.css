@@ -1,4 +1,5 @@
 @import "~bulma";
+@import "~bulma-checkradio";
 
 .stage-canvas {
     width: 100%;

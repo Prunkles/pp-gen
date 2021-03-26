@@ -183,6 +183,7 @@ type Three3DHeightmapRenderer(scene: Scene, palette) =
                 vUV = uv;
                 
                 vec3 newPosition = position + normal * heightScale * vAmount;
+                // vec3 newPosition = position + vec3(0.0, 0.0, 1.0) * heightScale * vAmount;
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
             }
         """
@@ -312,7 +313,7 @@ type ChunkSelection(scene: Scene, renderer: Renderer, cs, onGenerateChunk) =
             printfn "ChunkSelection disposed"
 
 
-type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk) =
+type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk, use3D) =
     
     let canvas = document.createElement("canvas") :?> HTMLCanvasElement
     do canvas.classList.add("stage-canvas")
@@ -373,9 +374,13 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
     
     // ---
     
-    let heightmapRenderer =
-//        new ThreeHeightmapRenderer(scene, palette, 1000)
-        new Three3DHeightmapRenderer(scene, palette)
+    let axesHelper = THREE.AxesHelper.Create(100.)
+    do scene.add(axesHelper) |> ignore
+    
+    let heightmapRenderer: IHeightmapRenderer =
+        if use3D
+        then upcast new Three3DHeightmapRenderer(scene, palette)
+        else upcast new ThreeHeightmapRenderer(scene, palette, 1000)
     
     let subscription =
         chunks
@@ -411,7 +416,7 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
         member this.Dispose() =
             (Disposable.concat [
                 subscription
-                heightmapRenderer
+                !!heightmapRenderer
                 chunkSelection
             ]).Dispose()
             controls.dispose()
