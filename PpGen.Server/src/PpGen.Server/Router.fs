@@ -7,6 +7,7 @@ open System.Threading
 open System.Reactive.Linq
 open FSharp.Control.Reactive
 
+open PpGen.PerlinNoise
 open Saturn
 open Giraffe
 
@@ -60,7 +61,7 @@ module DiamondSquare =
             return Some context
         }
     
-    let generate: HttpHandler =
+    let generateDiSq: HttpHandler =
         fun next context -> task {
             let seed, size, cx, cy =
                 option {
@@ -82,7 +83,7 @@ module DiamondSquare =
             return! sendChunks chunks next context
         }
     
-    let generateInterpolated: HttpHandler =
+    let generateDiSqInterpolated: HttpHandler =
         fun next context -> task {
             let seed, size, cx, cy =
                 option {
@@ -104,9 +105,40 @@ module DiamondSquare =
             return! sendChunks chunks next context
         }
     
+    let generatePerlin: HttpHandler =
+        fun next context -> task {
+            let seed, w, h, x, y =
+                option {
+                    let! seed = context.TryGetQueryStringValue("seed")
+                    and! w = context.TryGetQueryStringValue("width")
+                    and! h = context.TryGetQueryStringValue("height")
+                    and! x = context.TryGetQueryStringValue("gx")
+                    and! y = context.TryGetQueryStringValue("gy")
+                    let seed = UInt64.Parse(seed)
+                    let w = Int32.Parse(w)
+                    let h = Int32.Parse(h)
+                    let x = Int32.Parse(x)
+                    let y = Int32.Parse(y)
+                    return seed, w, h, x, y
+                }
+                |> Option.get
+            
+            let area = Perlin.generateReactive x y w h seed
+            let chunk =
+                area
+                |> Observable.map
+                       ( fun hm ->
+                         let hm = Seq.cast<float> hm.[0..w-1, 0..h-1] |> Seq.toArray
+                         { Heights = hm; Width = w; Height = h } )
+            return! sendChunks chunk next context
+        }
+    
+    
+    
     let router = router {
-        get "/alg/disq/generate" generate
-        get "/alg/disq/generate/interp" generateInterpolated
+        get "/alg/perlin/generate" generatePerlin
+        get "/alg/disq/generate" generateDiSq
+        get "/alg/disq/generate/interp" generateDiSqInterpolated
     }
 
 // ---------

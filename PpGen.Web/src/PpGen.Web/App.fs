@@ -1,6 +1,7 @@
 module PpGen.Web.App
 
 open System
+open Browser
 open FSharp.Control
 open Browser.Types
 open Fable.Import.RxJS
@@ -46,8 +47,15 @@ let App () =
                 | AlgorithmProps.DiamondSquare algorithm ->
                     (DiamondSquareHeightmapGeneratorFabric() :> IDiamondSquareHeightmapGeneratorFabric)
                         .CreateInterpolated(seed, byte algorithm.Size)
-                | AlgorithmProps.PerlinNoise algorithm ->
-                    invalidOp "Unsupported"
+                | AlgorithmProps.PerlinNoise props ->
+                    let generator cx cy = async {
+                        let path =
+                            $"/api/alg/perlin/generate?seed={seed}&width={props.Size}&height={props.Size}&gx={cx*props.Size}&gy={cy*props.Size}"
+                        let url = DiamondSquare.Generator.path2ws path
+                        let ws = WebSocket.Create(url)
+                        return! DiamondSquare.Generator.receiveFromWebsocket ws
+                    }
+                    HeightmapGenerator.create generator
             , [| box seed; box algorithm |]
         )
     
@@ -88,8 +96,10 @@ let App () =
                         let cs = pown 2 algorithm.Size
                         let stage = Stage cs chunkSubject palette generateChunk
                         stage
-                    | AlgorithmProps.PerlinNoise algorithm ->
-                        invalidOp "Unsupported"
+                    | AlgorithmProps.PerlinNoise props ->
+                        let cs = props.Size
+                        let stage = Stage cs chunkSubject palette generateChunk
+                        stage
                 ]
             ]
             Bulma.column [

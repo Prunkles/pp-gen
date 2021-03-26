@@ -20,12 +20,8 @@ module Perlin =
         t * t * t * (t * (t * 6. - 15.) + 10.)
     
     let randomVector x y (seed: uint64) =
-        let hash = 641374891
-        let hash = hash * 31 + x
-        let hash = hash * 31 + y
-        let hash = hash * 31 + ((int)seed)
-        
-        match hash % 4 with
+        let hash = HashCode.Combine(x, y, (int)seed, 641374891)
+        match abs hash % 4 with
         | 0 -> Vector2( 1.,  0.)
         | 1 -> Vector2( 0.,  1.)
         | 2 -> Vector2(-1.,  0.)
@@ -71,15 +67,18 @@ module Perlin =
         let bx = lerp bx1 bx2 pointInQuadX
         let tb = lerp tx  bx  pointInQuadY
         
-        tb
+        // TODO: Replace to map to 0..1
+        let h = tb // -1..1
+        let h = (h*0.5+0.5)*3. - 1.
+        h
     
     let generate (x: int) (y: int) (w: int) (h: int) seed =
         let hmap = Array2D.create w h 0.0
         
-        let scale = 128.0
+        let scale = ((w + h) / 2 |> float) / 4.
         
-        for dx in 0..w do
-            for dy in 0..h do
+        for dx in 0..(w-1) do
+            for dy in 0..(h-1) do
                 let gfx = x + dx |> float
                 let gfy = y + dy |> float
                 hmap.[dx, dy] <- noise (gfx / scale) (gfy / scale) seed
@@ -90,7 +89,7 @@ module Perlin =
         
         let sub (obv: IObserver<float[,]>) =
             let hm = generate x y w h seed
-            obv.OnNext(hm)a
+            obv.OnNext(hm)
             { new IDisposable with member _.Dispose() = () }
         
         { new IObservable<float[,]> with member _.Subscribe(obv) = sub obv }
