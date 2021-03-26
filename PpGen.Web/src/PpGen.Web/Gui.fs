@@ -38,6 +38,12 @@ let Gui initial onChanged =
     let algorithm, setAlgorithm = properties.Algorithm, fun alg -> setProperties { properties with Algorithm = alg }
     
     Html.div [
+        Bulma.field.p [
+            Bulma.label [
+                color.isInfo
+                prop.text "Press 'g' to generate chunk"
+            ]
+        ]
         Bulma.field.div [
             Bulma.label [ prop.text "Seed" ]
             Bulma.control.div [
