@@ -1,4 +1,4 @@
-module Fable.Import.RxJS.JsTypes
+namespace Fable.Import.RxJS
 
 #nowarn "0044"
 
@@ -63,9 +63,9 @@ type Subscription(?unsubscribe: unit -> unit) =
     abstract remove: subscription: Subscription -> unit
     default _.remove(_) = jsNative
     
-    // System
-    interface System.IDisposable with
-        member this.Dispose() = jsNative
+//    // System
+//    interface System.IDisposable with
+//        member this.Dispose() = jsNative
 
 
 [<Class>]
@@ -86,11 +86,11 @@ type Subscriber<'T> =
     abstract complete: unit -> unit
     default _.complete() = jsNative
     
-    // System
-    interface System.IObserver<'T> with
-        member this.OnNext(_) = jsNative
-        member this.OnError(_) = jsNative
-        member this.OnCompleted() = jsNative
+//    // System
+//    interface System.IObserver<'T> with
+//        member this.OnNext(_) = jsNative
+//        member this.OnError(_) = jsNative
+//        member this.OnCompleted() = jsNative
 
 
 [<Interface>]
@@ -117,9 +117,36 @@ type Observable<'T>(?subscribe: (Subscriber<'T> -> TeardownLogic)) =
     abstract operator: Operator<obj, 'T> with get
     default _.operator = jsNative
     
-    // System
-    interface System.IObservable<'T> with
-        member this.Subscribe(_) = jsNative
+//    // System
+//    interface System.IObservable<'T> with
+//        member this.Subscribe(_) = jsNative
+
+// --------
+
+
+type [<AllowNullLiteral>] SchedulerAction<'T> =
+//    inherit Subscription
+    abstract schedule: ?state: 'T * ?delay: float -> Subscription
+//    abstract ``constructor``: ?unsubscribe: (unit -> unit) -> unit
+//    abstract closed: obj * Object with get, set
+//    abstract unsubscribe: unit -> unit
+//    abstract add: teardown: TeardownLogic -> Subscription
+//    abstract remove: subscription: Subscription -> unit
+
+[<Import("SchedulerAction", "rxjs")>]
+type [<AllowNullLiteral>] SchedulerActionStatic =
+    static member EMPTY with get() = jsNative: Subscription and set (_: Subscription) = jsNative
+
+
+type [<AllowNullLiteral>] SchedulerLike =
+    abstract now: unit -> float
+    abstract schedule: work: (SchedulerAction<'T> -> 'T -> unit) * ?delay: float * ?state: 'T -> Subscription
+
+
+type AnimationFrameScheduler = SchedulerLike // TODO
+
+
+// --------
 
 
 [<Class>]
@@ -145,9 +172,28 @@ type Subject<'T>() =
 
 
 [<Class>]
+[<Import("AsyncSubject", "rxjs")>]
+type AsyncSubject<'T>() =
+    inherit Subject<'T>()
+
+[<Class>]
+[<Import("BehaviorSubject", "rxjs")>]
+type BehaviorSubject<'T>(value: 'T) =
+    inherit Subject<'T>()
+
+[<Class>]
+[<Import("ReplaySubject", "rxjs")>]
+type ReplaySubject<'T>(?bufferSize: int, ?windowTime: float, ?scheduler: SchedulerLike) =
+    inherit Subject<'T>()
+
+
+[<Class>]
 [<Import("AnonymousSubject", from="rxjs")>]
 type AnonymousSubject<'T>() =
     inherit Subject<'T>()
+
+
+// --------
 
 
 [<StringEnum>]
@@ -180,27 +226,4 @@ type WebSocketSubject<'T>(urlConfigIrSource: U3<string, WebSocketSubjectConfig<'
     
     abstract multiplex: subMsg: (unit -> obj) * unsubMsg: (unit -> obj) * messageFilter: ('T -> bool) -> unit
     default _.multiplex(_, _, _) = jsNative
-
-
-
-type [<AllowNullLiteral>] SchedulerAction<'T> =
-//    inherit Subscription
-    abstract schedule: ?state: 'T * ?delay: float -> Subscription
-//    abstract ``constructor``: ?unsubscribe: (unit -> unit) -> unit
-//    abstract closed: obj * Object with get, set
-//    abstract unsubscribe: unit -> unit
-//    abstract add: teardown: TeardownLogic -> Subscription
-//    abstract remove: subscription: Subscription -> unit
-
-[<Import("SchedulerAction", "rxjs")>]
-type [<AllowNullLiteral>] SchedulerActionStatic =
-    static member EMPTY with get() = jsNative: Subscription and set (_: Subscription) = jsNative
-
-
-type [<AllowNullLiteral>] SchedulerLike =
-    abstract now: unit -> float
-    abstract schedule: work: (SchedulerAction<'T> -> 'T -> unit) * ?delay: float * ?state: 'T -> Subscription
-
-
-type AnimationFrameScheduler = SchedulerLike // TODO
 

@@ -39,8 +39,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\PpGen.Api\PpGen.Api.fsproj" />
         <ProjectReference Include="..\..\..\PpGen.Utils\PpGen.Utils.fsproj" />
-        <ProjectReference Include="..\..\lib\Fable.Import.RxJS\src\Fable.Import.RxJS\Fable.Import.RxJS.fsproj" />
         <ProjectReference Include="..\..\lib\Fable.Import.DatGui\src\Fable.Import.DatGui\Fable.Import.DatGui.fsproj" />
+        <ProjectReference Include="..\..\lib\Fable.Import.RxJS\src\Fable.Control.Reactive\Fable.Control.Reactive.fsproj" />
         <ProjectReference Include="..\..\lib\Fable.Import.StatsJs\src\Fable.Import.StatsJs\Fable.Import.StatsJs.fsproj" />
         <ProjectReference Include="..\..\lib\Fable.Import.ThreeJs\src\Fable.Import.ThreeJs\Fable.Import.ThreeJs.fsproj" />
     </ItemGroup>

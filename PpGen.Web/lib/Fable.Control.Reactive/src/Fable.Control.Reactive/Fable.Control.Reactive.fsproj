@@ -5,11 +5,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="JsTypes.fs" />
-        <Compile Include="TypeTransforms.fs" />
-        <Compile Include="Rx.fs" />
-        <Compile Include="Misc.fs" />
-        <Compile Include="Exports.fs" />
+        <Compile Include="System.Reactive\Types.fs" />
+        <Compile Include="RxJS\Types.fs" />
+        <Compile Include="RxJS\Rx.fs" />
+        <Compile Include="RxJS\Exports.fs" />
+        <Compile Include="Transforms\TypeTransforms.fs" />
+        <Compile Include="Disposable.fs" />
+        <Compile Include="Subject.fs" />
+        <Compile Include="Observable.fs" />
     </ItemGroup>
 
     <ItemGroup>

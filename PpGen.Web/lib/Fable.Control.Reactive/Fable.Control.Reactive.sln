@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fable.Import.RxJS", "src\Fable.Import.RxJS\Fable.Import.RxJS.fsproj", "{9F31BACE-0CEC-49B2-8B1E-AA7A9AC637B7}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Fable.Control.Reactive", "src\Fable.Control.Reactive\Fable.Control.Reactive.fsproj", "{9F31BACE-0CEC-49B2-8B1E-AA7A9AC637B7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{1DB181D6-0B1D-44AD-9543-C1D30ED691E6}"
 EndProject
