@@ -97,7 +97,6 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
                         let imageIdx = (y - intY0) * intW + (x - intX0) // transposed
                         let heightIdx = (x - rectX0) * rectH + (y - rectY0)
                         let h = heights.[heightIdx]
-                        let h = (h + 1.) / 3. |> max 0. |> min 1.
                         let (Rgb (r, g, b)) = Palette.pick palette h
                         imageData.data.[imageIdx * 4 + 0] <- r
                         imageData.data.[imageIdx * 4 + 1] <- g
@@ -122,6 +121,7 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
             scene.remove(objects) |> ignore
 
 
+// TODO: Fix incorrect rendering
 type Three3DHeightmapRenderer(scene: Scene, palette) =
     let resources = ResizeArray<IThreeDisposable>()
     
@@ -144,7 +144,7 @@ type Three3DHeightmapRenderer(scene: Scene, palette) =
                 let x, y = i / rectW, i % rectH
                 let x, y = y, rectW - x
                 let h = heights.[x * rectW + y]
-                let h = (h + 1.) / 3. |> max 0. |> min 1.
+                let h = h |> max 0.0 |> min 1.0
                 float32 h
             )
         

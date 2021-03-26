@@ -166,6 +166,10 @@ module Generator =
             Step.diamond getPoint (setPoint i) s i
         
         area.Chunk.Data
+        |> Array2D.map (fun h ->
+            let h = (h + 1.) / 3. |> max 0. |> min 1. // TODO: Normalize
+            h
+        )
     
     let generateReactive (s: uint) (cx, cy) (noise: Noise) =
         
@@ -176,6 +180,7 @@ module Generator =
             
             let dispatchPoint (x, y) h =
                 let gx, gy = cx * cs + x, cy * cs + y
+                let h = (h + 1.) / 3. |> max 0. |> min 1. // TODO: Normalize
                 obv.OnNext((gx, gy), h)
             
             let getPoint (x, y) =
@@ -220,7 +225,16 @@ module Generator =
         
         let sub (obv: IObserver<Chunk<float>>) =
             
-            let dispatchChunk (chunk: Chunk<float>)  =
+            let dispatchChunk (chunk: Chunk<float>) =
+                let chunk =
+                    { chunk with
+                        Data =
+                            chunk.Data
+                            |> Array2D.map (fun h ->
+                                let h = (h + 1.) / 3. |> max 0. |> min 1. // TODO: Normalize
+                                h
+                            )
+                    }
                 obv.OnNext(chunk)
             
             let interpolateArea (iter: uint) (sourceArea: GenArea<float>) : Chunk<float> =
@@ -248,12 +262,12 @@ module Generator =
             let getPoint (x, y) =
                 GenArea.getPoint area (x, y)
             
-            let setPoint i (x, y) value =
+            let setPoint i (x, y) h =
                 let gx, gy = cx * cs + x, cy * cs + y
                 let r = pown 2 (s - i |> int) / 2
                 let q = noise (gx, gy)
-                let value = applyNoise value q r i
-                GenArea.setPoint area (x, y) value
+                let h = applyNoise h q r i
+                GenArea.setPoint area (x, y) h
             
             let setInitPoint (x, y) =
                 let gx, gy = cx * cs + x, cy * cs + y
