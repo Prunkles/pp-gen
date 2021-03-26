@@ -70,9 +70,8 @@ module Perlin =
         let bx = lerp bx1 bx2 pointInQuadX
         let tb = lerp tx  bx  pointInQuadY
         
-        // TODO: Replace to map to 0..1
-        let h = tb // -1..1
-        let h = (h*0.5+0.5)*3. - 1.
+        let h = tb // (-1; 1)
+        let h = (h + 1.) / 2. // (0; 1)
         h
     
     let generate (x: int) (y: int) (w: int) (h: int) seed =
