@@ -9,7 +9,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\PpGen.Utils\PpGen.Utils.fsproj" />
+      <ProjectReference Include="..\..\PpGen.Utils\PpGen.Utils.fsproj" />
     </ItemGroup>
 
 </Project>

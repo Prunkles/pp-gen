@@ -10,7 +10,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\PpGen.DiamondSquare\PpGen.DiamondSquare.fsproj" />
+      <ProjectReference Include="..\Algorithms\PpGen.DiamondSquare\PpGen.DiamondSquare.fsproj" />
       <ProjectReference Include="..\PpGen.Utils\PpGen.Utils.fsproj" />
     </ItemGroup>
 

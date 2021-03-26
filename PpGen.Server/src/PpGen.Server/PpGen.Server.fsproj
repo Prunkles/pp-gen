@@ -27,8 +27,8 @@
     
     <ItemGroup>
       <ProjectReference Include="..\..\..\PpGen.Api\PpGen.Api.fsproj" />
-      <ProjectReference Include="..\..\..\PpGen.DiamondSquare\PpGen.DiamondSquare.fsproj" />
-      <ProjectReference Include="..\..\..\PpGen.PerlinNoise\PpGen.PerlinNoise.fsproj" />
+      <ProjectReference Include="..\..\..\Algorithms\PpGen.DiamondSquare\PpGen.DiamondSquare.fsproj" />
+      <ProjectReference Include="..\..\..\Algorithms\PpGen.PerlinNoise\PpGen.PerlinNoise.fsproj" />
       <ProjectReference Include="..\..\..\PpGen.Utils\PpGen.Utils.fsproj" />
     </ItemGroup>
 </Project>
