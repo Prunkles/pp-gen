@@ -120,82 +120,124 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
             resources |> Seq.iter ^fun r -> r.dispose()
             let objects = regions.Values |> Seq.map (fun r -> r.Mesh) |> Seq.toArray
             scene.remove(objects) |> ignore
+
+
+type Three3DHeightmapRenderer(scene: Scene, palette) =
+    let resources = ResizeArray<IThreeDisposable>()
     
+    let rects = Dictionary<int * int * int * int, {| Mesh: Mesh; Disposable: IDisposable |}>()
+    
+    let drawRect rectX0 rectY0 rectW rectH (heights: float[]) =
+        
+        // Try remove existing mesh on the same place
+        match rects.TryGetValue((rectX0, rectY0, rectW, rectH)) with
+        | false, _ -> ()
+        | true, r ->
+            r.Disposable.Dispose()
+            scene.remove(r.Mesh) |> ignore
+        
+        
+        // transpose and convert to float32
+        let heights =
+            heights
+            |> Array.mapi (fun i _ ->
+                let x, y = i / rectW, i % rectH
+                let x, y = y, rectW - x
+                let h = heights.[x * rectW + y]
+                let h = (h + 1.) / 3. |> max 0. |> min 1.
+                float32 h
+            )
+        
+        let paletteTexture =
+            let paletteData =
+                heights
+                |> Array.collect (fun h ->
+                    let (Rgb (r, g, b)) = float h |> Palette.pick palette
+                    [| float32 r / 255.f; float32 g / 255.f; float32 b / 255.f |]
+                )
+            THREE.DataTexture.Create(paletteData, float rectW, float rectH, format=THREE.RGBFormat, ``type``=THREE.FloatType)
+        resources.Add(!!paletteTexture)
+        
+        let planeGeometry = THREE.PlaneGeometry.Create(float rectW, float rectH, 64., 64.)
+        resources.Add(!!planeGeometry)
+        
+        let heightTexture =
+            let heightData = heights
+            THREE.DataTexture.Create(heightData, float rectW, float rectH, format=THREE.RedFormat, ``type``=THREE.FloatType)
+//        heightTexture.wrapS <- THREE.RepeatWrapping
+//        heightTexture.wrapT <- THREE.RepeatWrapping
+        resources.Add(!!heightTexture)
+        
+        let material = THREE.ShaderMaterial.Create()
+        material.side <- THREE.DoubleSide
+        material.vertexShader <- """
+            uniform sampler2D heightTexture;
+            uniform float heightScale;
+            
+            varying float vAmount;
+            varying vec2 vUV;
+            
+            void main() {
+                vec4 heightData = texture2D(heightTexture, uv);
+                vAmount = heightData.r;
+                vUV = uv;
+                
+                vec3 newPosition = position + normal * heightScale * vAmount;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+            }
+        """
+        material.fragmentShader <- """
+            uniform sampler2D paletteTexture;
+            
+            varying vec2 vUV;
+            varying float vAmount;
+            
+            void main() {
+                vec4 paletted = texture(paletteTexture, vUV);
+                gl_FragColor = paletted;
+            }
+        """
+        
+        let scale = 100.0
+        
+        let customUniforms =
+            {| heightTexture = {| ``type`` = "t"; value = heightTexture |}
+               heightScale = {| ``type`` = "f"; value = scale |}
+               paletteTexture = {| ``type`` = "t"; value = paletteTexture |} |}
+        
+        material.uniforms <- !!customUniforms
+        
+        resources.Add(!!material)
 
-
-//type ThreeHeightmap3DRenderer(stage: Stage) =
-//    let resources = ResizeArray<obj>()
-//    
-//    let regions: IDictionary<int * int, Region> = upcast Dictionary()
-//    
-//    let getRegion rx ry =
-//        let createRegion rx ry =
-//            printfn $"Create new region at ({rx}, {ry})R"
-//            let canvas = document.createElement("canvas") :?> HTMLCanvasElement
-//            canvas.width <- float regionSize
-//            canvas.height <- float regionSize
-//            let canvasTexture = THREE.CanvasTexture.Create(!^canvas)
-//            canvasTexture.magFilter <- THREE.NearestFilter
-//            let material = THREE.MeshBasicMaterial.Create()
-//            material.map <- Some !!canvasTexture
-//            let shaderMaterial = THREE.ShaderMaterial.Create()
-//            
-//            let planeGeometry = THREE.PlaneGeometry.Create(float regionSize, float regionSize, float regionSize / 32., float regionSize / 32.)
-//            let mesh = THREE.Mesh.Create(planeGeometry, material)
-//            mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
-//            mesh.position.set(
-//                float rx * float regionSize + float regionSize / 2.,
-//                0.0,
-//                float ry * float regionSize + float regionSize / 2.
-//            ) |> ignore
-//            
-//            let ctx = canvas.getContext_2d()
-//            ctx?webkitImageSmoothingEnabled <- false
-//            ctx?imageSmoothingEnabled <- false
-//            
-//            let region = { CanvasContext = ctx; Mesh = mesh }
-//            regions.[(rx, ry)] <- region
-//            stage.Scene.add(mesh) |> ignore
-//            resources.AddRange([canvasTexture; material; planeGeometry])
-//            
-//            region
-//        
-//        match regions.TryGetValue((rx, ry)) with
-//        | true, region -> region
-//        | false, _ -> createRegion rx ry
-//    
-//    let drawRect rectX0 rectY0 rectW rectH (heights: float[]) =
-//        let rs = regionSize
-//        let rectX1, rectY1 = rectX0 + rectW - 1, rectY0 + rectH - 1
-//        let regionX0, regionY0 = rectX0 /! rs, rectY0 /! rs
-//        let regionX1, regionY1 = rectX1 /! rs, rectY1 /! rs
-//        for rx in regionX0 .. regionX1 do
-//            for ry in regionY0 .. regionY1 do
-//                let region = getRegion rx ry
-//                let intX0, intY0 = max (rx * rs) rectX0, max (ry * rs) rectY0
-//                let intX1, intY1 = min ((rx + 1) * rs - 1) rectX1, min ((ry + 1) * rs - 1) rectY1
-//                let intW, intH = intX1 - intX0 + 1, intY1 - intY0 + 1
-//                let imageData = region.CanvasContext.createImageData(intW |> float, intH |> float)
-//                for x in intX0 .. intX1 do
-//                    for y in intY0 .. intY1 do
-//                        let imageIdx = (y - intY0) * intW + (x - intX0) // transposed
-//                        let heightIdx = (x - rectX0) * rectH + (y - rectY0)
-//                        let h = heights.[heightIdx]
-//                        let h = (h + 1.) / 3. |> max 0. |> min 1.
-//                        let (Rgb (r, g, b)) = Palette.pick palette h
-//                        imageData.data.[imageIdx * 4 + 0] <- r
-//                        imageData.data.[imageIdx * 4 + 1] <- g
-//                        imageData.data.[imageIdx * 4 + 2] <- b
-//                        imageData.data.[imageIdx * 4 + 3] <- 0xFFuy
-//                region.CanvasContext.putImageData(imageData, intX0 %! rs |> float, intY0 %! rs |> float)
-//                region.Mesh.material.needsUpdate <- true
-//                region.Mesh.material.map.Value.needsUpdate <- true
-//    
-//    interface IHeightmapRenderer with
-//        member this.RenderRect(x, y, w, h, heights) = drawRect x y w h heights
-//    
-//    interface IDisposable with
-//        member _.Dispose() = resources |> Seq.iter ^fun r -> r?dispose()
+        let mesh = THREE.Mesh.Create(planeGeometry, material)
+        mesh.position.set(
+            float rectX0 + float rectW / 2.,
+            0.0,
+            float rectY0 + float rectH / 2.
+        ) |> ignore
+        mesh.rotation.set(deg2rad -90., 0., 0.) |> ignore
+        
+        scene.add(mesh) |> ignore
+        rects.[(rectX0, rectY0, rectW, rectH)] <-
+            {| Mesh = !!mesh
+               Disposable = Disposable.concat [
+                   Disposable.ofThreeDisposable !!material
+                   Disposable.ofThreeDisposable !!heightTexture
+                   Disposable.ofThreeDisposable !!planeGeometry
+                   Disposable.ofThreeDisposable !!paletteTexture
+               ] |}
+    
+    member _.DrawRect(rectX0, rectY0, rectW, rectH, heights: float[]) = drawRect rectX0 rectY0 rectW rectH heights
+    
+    member this.Clear() =
+        (this :> IDisposable).Dispose()
+    
+    interface IHeightmapRenderer with
+        member this.RenderRect(x, y, w, h, heights) = drawRect x y w h heights
+    
+    interface IDisposable with
+        member _.Dispose() =
+            resources |> Seq.iter ^fun r -> r.dispose()
 
 
 
@@ -331,7 +373,9 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
     
     // ---
     
-    let heightmapRenderer = new ThreeHeightmapRenderer(scene, palette, 1000)
+    let heightmapRenderer =
+//        new ThreeHeightmapRenderer(scene, palette, 1000)
+        new Three3DHeightmapRenderer(scene, palette)
     
     let subscription =
         chunks
@@ -373,4 +417,3 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk)
             controls.dispose()
             renderer.dispose()
             printfn "Stage disposed"
-

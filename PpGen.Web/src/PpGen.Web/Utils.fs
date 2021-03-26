@@ -74,14 +74,17 @@ module Euclidean =
 
 let inline deg2rad a = System.Math.PI / 180. * a
 
+
+type IThreeDisposable =
+    abstract dispose: unit -> unit
+
 [<RequireQualifiedAccess>]
 module Disposable =
     open System
     
     let inline create dispose = { new IDisposable with member _.Dispose() = dispose () }
     
+    let ofThreeDisposable (d: IThreeDisposable) = create d.dispose
+    
     let concat (disposables: IDisposable seq) =
         create (fun () -> disposables |> Seq.iter (fun d -> d.Dispose()))
-
-type IThreeDisposable =
-    abstract dispose: unit -> unit
