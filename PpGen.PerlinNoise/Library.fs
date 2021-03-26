@@ -29,7 +29,7 @@ module Perlin =
             | 1 -> Vector2( 0.,  1.)
             | 2 -> Vector2(-1.,  0.)
             | 3 -> Vector2( 0., -1.)
-            | _ -> invalidOp "ops"
+            | _ -> invalidOp "Unreachable"
     
     let noise (x: float) (y: float) (seed: uint64) =
         let left = floor x |> int
