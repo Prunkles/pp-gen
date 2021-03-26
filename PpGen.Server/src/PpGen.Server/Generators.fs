@@ -25,7 +25,7 @@ module Generators =
         let cs = pown 2 (int size)
         let generator cx cy = async {
             let heights = PpGen.DiamondSquare.Generator.generate size (cx, cy) (noise seed)
-            let heights = Seq.cast<float> heights.[0..cs-1, 0..cs-1] |> Seq.toArray
+            let heights = Seq.cast<float> heights.[0..cs-1, 0..cs-1] |> Seq.map float32 |> Seq.toArray
             let chunk =
                 { Heights = heights
                   Width = cs; Height = cs }
@@ -40,7 +40,7 @@ module Generators =
             return
                 chunks
                 |> Observable.map (fun chunk ->
-                    let heights = Seq.cast<float> chunk.Data.[0..cs-1, 0..cs-1] |> Seq.toArray
+                    let heights = Seq.cast<float> chunk.Data.[0..cs-1, 0..cs-1] |> Seq.map float32 |> Seq.toArray
                     { Heights = heights
                       Width = cs; Height = cs }
                 )

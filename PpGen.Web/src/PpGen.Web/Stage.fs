@@ -33,7 +33,7 @@ open Euclidean.Operators
 
 
 type IHeightmapRenderer =
-    abstract RenderRect: x: int * y: int * w: int * h: int * heights: float[] -> unit
+    abstract RenderRect: x: int * y: int * w: int * h: int * heights: float32[] -> unit
 
 
 type Region =
@@ -80,7 +80,7 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
         | true, region -> region
         | false, _ -> createRegion rx ry
     
-    let drawRect rectX0 rectY0 rectW rectH (heights: float[]) =
+    let drawRect rectX0 rectY0 rectW rectH (heights: float32[]) =
         let rs = regionSize
         let rectX1, rectY1 = rectX0 + rectW - 1, rectY0 + rectH - 1
         let regionX0, regionY0 = rectX0 /! rs, rectY0 /! rs
@@ -97,7 +97,7 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
                         let imageIdx = (y - intY0) * intW + (x - intX0) // transposed
                         let heightIdx = (x - rectX0) * rectH + (y - rectY0)
                         let h = heights.[heightIdx]
-                        let (Rgb (r, g, b)) = Palette.pick palette h
+                        let (Rgb (r, g, b)) = Palette.pick palette (float h)
                         imageData.data.[imageIdx * 4 + 0] <- r
                         imageData.data.[imageIdx * 4 + 1] <- g
                         imageData.data.[imageIdx * 4 + 2] <- b
@@ -106,7 +106,7 @@ type ThreeHeightmapRenderer(scene: Scene, palette, regionSize) =
                 region.Mesh.material.needsUpdate <- true
                 region.Mesh.material.map.Value.needsUpdate <- true
     
-    member _.DrawRect(rectX0, rectY0, rectW, rectH, heights: float[]) = drawRect rectX0 rectY0 rectW rectH heights
+    member _.DrawRect(rectX0, rectY0, rectW, rectH, heights: float32[]) = drawRect rectX0 rectY0 rectW rectH heights
     
     member this.Clear() =
         (this :> IDisposable).Dispose()
@@ -127,7 +127,7 @@ type Three3DHeightmapRenderer(scene: Scene, palette) =
     
     let rects = Dictionary<int * int * int * int, {| Mesh: Mesh; Disposable: IDisposable |}>()
     
-    let drawRect rectX0 rectY0 rectW rectH (heights: float[]) =
+    let drawRect rectX0 rectY0 rectW rectH (heights: float32[]) =
         
         // Try remove existing mesh on the same place
         match rects.TryGetValue((rectX0, rectY0, rectW, rectH)) with
@@ -144,7 +144,7 @@ type Three3DHeightmapRenderer(scene: Scene, palette) =
                 let x, y = i / rectW, i % rectH
                 let x, y = y, rectW - x
                 let h = heights.[x * rectW + y]
-                let h = h |> max 0.0 |> min 1.0
+                let h = h |> max 0.0f |> min 1.0f
                 float32 h
             )
         
@@ -228,7 +228,7 @@ type Three3DHeightmapRenderer(scene: Scene, palette) =
                    Disposable.ofThreeDisposable !!paletteTexture
                ] |}
     
-    member _.DrawRect(rectX0, rectY0, rectW, rectH, heights: float[]) = drawRect rectX0 rectY0 rectW rectH heights
+    member _.DrawRect(rectX0, rectY0, rectW, rectH, heights: float32[]) = drawRect rectX0 rectY0 rectW rectH heights
     
     member this.Clear() =
         (this :> IDisposable).Dispose()
@@ -387,7 +387,7 @@ type Stage(cs, chunks: IObservable<int * int * Chunk>, palette, onGenerateChunk,
         |> fun x -> !!x : IRxObservable<int * int * Chunk>
         |> Rx.subscribe(fun (cx, cy, chunk) ->
             let x, y = cx * chunk.Width, cy * chunk.Height
-            (heightmapRenderer :> IHeightmapRenderer).RenderRect(x, y, chunk.Width, chunk.Height, chunk.Heights)
+            (heightmapRenderer).RenderRect(x, y, chunk.Width, chunk.Height, chunk.Heights)
         )
     
     let chunkSelection = new ChunkSelection(scene, renderer, cs, onGenerateChunk)

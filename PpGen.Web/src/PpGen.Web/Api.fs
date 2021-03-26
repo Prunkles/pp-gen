@@ -29,7 +29,7 @@ module DiamondSquare =
                 let values: int32[] = !!JS.Constructors.Int32Array.Create(data.slice(0, 8))
                 let width = values.[0]
                 let height = values.[1]
-                let heights: float[] = !!JS.Constructors.Float64Array.Create(data.slice(8))
+                let heights: float32[] = !!JS.Constructors.Float32Array.Create(data.slice(8))
                 let chunk =
                     { Heights = heights
                       Height = height; Width = width }

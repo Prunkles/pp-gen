@@ -128,7 +128,7 @@ module DiamondSquare =
                 area
                 |> Observable.map
                        ( fun hm ->
-                         let hm = Seq.cast<float> hm.[0..w-1, 0..h-1] |> Seq.toArray
+                         let hm = Seq.cast<float> hm.[0..w-1, 0..h-1] |> Seq.map float32 |> Seq.toArray
                          { Heights = hm; Width = w; Height = h } )
             return! sendChunks chunk next context
         }

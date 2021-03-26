@@ -4,7 +4,7 @@ open System
 
 
 type Chunk =
-    { Heights: float[]
+    { Heights: float32[]
       Width: int
       Height: int }
 
