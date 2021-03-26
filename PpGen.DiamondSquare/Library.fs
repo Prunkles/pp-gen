@@ -2,7 +2,6 @@
 
 open System
 open System.Collections.Generic
-open PpGen.Utils
 open GenericNumber
 
 
@@ -141,6 +140,8 @@ module Generator =
         h + d
 //        q
     
+    // TODO: Normalize values
+    let pseudoNormalize h = (h + 1.5) / 4. |> min 1. |> max 0.
     
     let generate (s: uint) (cx, cy) (noise: Noise) =
         let area = GenArea.createEmpty s nan
@@ -166,10 +167,7 @@ module Generator =
             Step.diamond getPoint (setPoint i) s i
         
         area.Chunk.Data
-        |> Array2D.map (fun h ->
-            let h = (h + 1.) / 3. |> max 0. |> min 1. // TODO: Normalize
-            h
-        )
+        |> Array2D.map pseudoNormalize
     
     let generateReactive (s: uint) (cx, cy) (noise: Noise) =
         
@@ -180,7 +178,7 @@ module Generator =
             
             let dispatchPoint (x, y) h =
                 let gx, gy = cx * cs + x, cy * cs + y
-                let h = (h + 1.) / 3. |> max 0. |> min 1. // TODO: Normalize
+                let h = pseudoNormalize h
                 obv.OnNext((gx, gy), h)
             
             let getPoint (x, y) =
@@ -230,10 +228,7 @@ module Generator =
                     { chunk with
                         Data =
                             chunk.Data
-                            |> Array2D.map (fun h ->
-                                let h = (h + 1.) / 3. |> max 0. |> min 1. // TODO: Normalize
-                                h
-                            )
+                            |> Array2D.map pseudoNormalize
                     }
                 obv.OnNext(chunk)
             
