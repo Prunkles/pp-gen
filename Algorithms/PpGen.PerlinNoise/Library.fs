@@ -74,23 +74,37 @@ module Perlin =
         let h = (h + 1.) / 2. // (0; 1)
         h
     
-    let generate (x: int) (y: int) (w: int) (h: int) seed =
+    let generate (x: int) (y: int) (w: int) (h: int) seed octaveCount =
         let hmap = Array2D.create w h 0.0
         
-        let scale = ((w + h) / 2 |> float) / 4.
+        let order (octave: int) = Math.Pow(2.0, float octave)
+        let baseScale (octave: int) = 1. / order(octave)
+        let scale (octave: int) = ((w + h) / 2 |> float) / 4. * (baseScale octave)
+        
+        let mutable maxHeight =
+            Seq.init octaveCount id
+            |> Seq.map baseScale
+            |> Seq.sum
         
         for dx in 0..(w-1) do
             for dy in 0..(h-1) do
                 let gfx = x + dx |> float
                 let gfy = y + dy |> float
-                hmap.[dx, dy] <- noise (gfx / scale) (gfy / scale) seed
+                
+                let mutable height = 0.0
+                for octave in 0..(octaveCount - 1) do
+                    let mapScale = scale octave
+                    let dh = noise (gfx * mapScale) (gfy * mapScale) seed
+                    height <- height + dh
+                
+                hmap.[dx, dy] <- height / maxHeight
         
         hmap
     
-    let generateReactive (x: int) (y: int) (w: int) (h: int) seed =
+    let generateReactive (x: int) (y: int) (w: int) (h: int) seed octaveCount =
         
         let sub (obv: IObserver<float[,]>) =
-            let hm = generate x y w h seed
+            let hm = generate x y w h seed octaveCount
             obv.OnNext(hm)
             { new IDisposable with member _.Dispose() = () }
         
